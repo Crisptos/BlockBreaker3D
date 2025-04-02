@@ -30,4 +30,15 @@ namespace BB3D
 		SDL_GPUDevice* m_Device;
 
 	};
+
+	// Utility Functions
+	SDL_GPUShader* CreateShaderFromFile(
+		SDL_GPUDevice* device, 
+		const char* file_path, 
+		SDL_GPUShaderStage shader_stage, 
+		Uint32 sampler_count,
+		Uint32 uniform_buffer_count,
+		Uint32 storage_buffer_count,
+		Uint32 storage_texture_count
+	);
 }

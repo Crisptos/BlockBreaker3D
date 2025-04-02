@@ -137,4 +137,33 @@ namespace BB3D
 			}
 		}
 	}
+
+	// Utility Functions
+	SDL_GPUShader* CreateShaderFromFile(
+		SDL_GPUDevice* device,
+		const char* file_path,
+		SDL_GPUShaderStage shader_stage,
+		Uint32 sampler_count,
+		Uint32 uniform_buffer_count,
+		Uint32 storage_buffer_count,
+		Uint32 storage_texture_count
+	)
+	{
+		SDL_GPUShader* new_shader;
+
+		SDL_GPUShaderFormat supported_formats = SDL_GetGPUShaderFormats(device);
+		if (!(supported_formats & SDL_GPU_SHADERFORMAT_SPIRV))
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device context does not support the target shader format (SPIR-V)");
+			std::abort();
+		}
+
+		size_t source_size = 0;
+		void* shader_source = SDL_LoadFile(file_path, &source_size);
+
+		SDL_GPUShaderCreateInfo shader_create_info = {};
+		shader_create_info.code = static_cast<Uint8*>(shader_source);
+
+		return new_shader;
+	}
 }
