@@ -52,7 +52,7 @@ namespace BB3D
 		{
 			if (!m_IsIdle)
 			{
-
+				Render();
 				Input();
 			}
 		}
@@ -66,7 +66,63 @@ namespace BB3D
 		SDL_Quit();
 	}
 
+	// ________________________________ Setup ________________________________
+
+	void Engine::Setup()
+	{
+
+	}
+
 	// ________________________________ Runtime ________________________________
+	void Engine::Render()
+	{
+		/*
+			Acquire Command Buffer
+			Acquire Swapchain Texture
+			Begin Render Pass
+			Draw
+			End Render Pass
+			More Render Passes
+			Submit Command Buffer
+		*/
+		SDL_GPUCommandBuffer* cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
+
+		SDL_GPUTexture* swapchain_tex;
+		if (!SDL_WaitAndAcquireGPUSwapchainTexture(
+			cmd_buff, 
+			m_Window, 
+			&swapchain_tex, 
+			nullptr, 
+			nullptr
+		))
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to acquire swapchain texture: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		SDL_GPUColorTargetInfo color_target_info = {};
+		color_target_info.texture = swapchain_tex;
+		color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
+		color_target_info.clear_color = {0.44, 0.44, 0.64, 1.0};
+		color_target_info.store_op = SDL_GPU_STOREOP_STORE;
+
+		SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(
+			cmd_buff,
+			&color_target_info,
+			1,
+			nullptr
+		);
+
+		SDL_EndGPURenderPass(render_pass);
+
+
+		if (!SDL_SubmitGPUCommandBuffer(cmd_buff))
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit command buffer to GPU: %s\n", SDL_GetError());
+			std::abort();
+		}
+	}
+
 	void Engine::Input()
 	{
 		SDL_Event ev;

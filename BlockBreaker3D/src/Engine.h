@@ -11,7 +11,13 @@ namespace BB3D
 		void Destroy();
 
 	private:
+		// Setup
+		void Setup();
+
+		// Runtime
 		void Input();
+		void Render();
+		
 
 	private:
 
