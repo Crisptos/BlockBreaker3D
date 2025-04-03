@@ -48,6 +48,7 @@ namespace BB3D
 
 	void Engine::Run()
 	{
+		Setup();
 		while (m_IsRunning)
 		{
 			if (!m_IsIdle)
@@ -60,9 +61,10 @@ namespace BB3D
 
 	void Engine::Destroy()
 	{
+		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_Pipeline);
 		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
-		SDL_DestroyGPUDevice(m_Device);
 		SDL_DestroyWindow(m_Window);
+		SDL_DestroyGPUDevice(m_Device);
 		SDL_Quit();
 	}
 
@@ -70,7 +72,32 @@ namespace BB3D
 
 	void Engine::Setup()
 	{
+		SDL_GPUShader* vert_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 0, 0, 0);
+		SDL_GPUShader* frag_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 0, 0, 0, 0);
 
+		if (!vert_shader || !frag_shader)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to create GPU Pipeline shaders: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		SDL_GPUColorTargetDescription color_target_dscr = {};
+		color_target_dscr.format = SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window);
+
+		SDL_GPUGraphicsPipelineTargetInfo target_info_pipeline = {};
+		target_info_pipeline.num_color_targets = 1;
+		target_info_pipeline.color_target_descriptions = &color_target_dscr;
+
+		SDL_GPUGraphicsPipelineCreateInfo create_info_pipeline = {};
+		create_info_pipeline.vertex_shader = vert_shader;
+		create_info_pipeline.fragment_shader = frag_shader;
+		create_info_pipeline.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+		create_info_pipeline.target_info = target_info_pipeline;
+
+		m_Pipeline = SDL_CreateGPUGraphicsPipeline(m_Device, &create_info_pipeline);
+
+		SDL_ReleaseGPUShader(m_Device, vert_shader);
+		SDL_ReleaseGPUShader(m_Device, frag_shader);
 	}
 
 	// ________________________________ Runtime ________________________________
@@ -112,6 +139,14 @@ namespace BB3D
 			1,
 			nullptr
 		);
+
+		// Bind Pipeline
+		// Bind Vertex Data
+		// Bind Uniform
+		// Draw Call
+
+		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
+		SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
 
 		SDL_EndGPURenderPass(render_pass);
 
@@ -160,9 +195,28 @@ namespace BB3D
 
 		size_t source_size = 0;
 		void* shader_source = SDL_LoadFile(file_path, &source_size);
+		if (!shader_source)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Couldn't locate file at: %s\n", file_path);
+			std::abort();
+		}
 
 		SDL_GPUShaderCreateInfo shader_create_info = {};
 		shader_create_info.code = static_cast<Uint8*>(shader_source);
+		shader_create_info.code_size = source_size;
+		shader_create_info.entrypoint = "main";
+		shader_create_info.format = supported_formats;
+		shader_create_info.stage = shader_stage;
+		shader_create_info.num_storage_textures = storage_texture_count;
+		shader_create_info.num_storage_buffers = storage_buffer_count;
+		shader_create_info.num_uniform_buffers = uniform_buffer_count;
+
+		new_shader = SDL_CreateGPUShader(
+			device,
+			&shader_create_info
+		);
+
+		SDL_free(shader_source);
 
 		return new_shader;
 	}

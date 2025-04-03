@@ -29,6 +29,8 @@ namespace BB3D
 		SDL_Window* m_Window;
 		SDL_GPUDevice* m_Device;
 
+		SDL_GPUGraphicsPipeline* m_Pipeline;
+
 	};
 
 	// Utility Functions
