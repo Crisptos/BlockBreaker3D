@@ -3,7 +3,7 @@
 layout(location = 0) out vec3 frag_color;
 
 layout(set=1, binding = 0)uniform VBO {
-	mat4 proj;
+	mat4 mvp;
 };
 
 vec3 positions[3] = vec3[](
@@ -20,6 +20,6 @@ vec3 colors[3] = vec3[](
 
 void main()
 {
-	gl_Position = proj * vec4(positions[gl_VertexIndex], 1.0);
+	gl_Position = mvp * vec4(positions[gl_VertexIndex], 1.0);
 	frag_color = colors[gl_VertexIndex];
 }
