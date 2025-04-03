@@ -1,8 +1,13 @@
 #include "Engine.h"
 #include <iostream>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 namespace BB3D
 {
+	glm::mat4 proj(1.0f);
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -72,7 +77,7 @@ namespace BB3D
 
 	void Engine::Setup()
 	{
-		SDL_GPUShader* vert_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 0, 0, 0);
+		SDL_GPUShader* vert_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
 		SDL_GPUShader* frag_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 0, 0, 0, 0);
 
 		if (!vert_shader || !frag_shader)
@@ -98,6 +103,9 @@ namespace BB3D
 
 		SDL_ReleaseGPUShader(m_Device, vert_shader);
 		SDL_ReleaseGPUShader(m_Device, frag_shader);
+
+		// Delete Me After
+		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
 	}
 
 	// ________________________________ Runtime ________________________________
@@ -130,7 +138,7 @@ namespace BB3D
 		SDL_GPUColorTargetInfo color_target_info = {};
 		color_target_info.texture = swapchain_tex;
 		color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
-		color_target_info.clear_color = {0.44, 0.44, 0.64, 1.0};
+		color_target_info.clear_color = {0.87, 0.85, 0.88, 1.0};
 		color_target_info.store_op = SDL_GPU_STOREOP_STORE;
 
 		SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(
@@ -146,6 +154,10 @@ namespace BB3D
 		// Draw Call
 
 		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
+		// Vertex Attributes - per vertex data
+		// Uniform Data - pew draw call
+		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(proj), sizeof(proj));
+
 		SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
 
 		SDL_EndGPURenderPass(render_pass);
