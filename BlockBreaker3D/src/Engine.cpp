@@ -14,6 +14,11 @@ namespace BB3D
 	float rot = 0.0f;
 	float height = 0.0f;
 	bool dir = true;
+
+	struct Vertex
+	{
+		float x, y, z, r, g, b;
+	};
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -93,6 +98,10 @@ namespace BB3D
 			std::abort();
 		}
 
+		// Describe vertex attributes and buffers in pipeline
+		// create vertex data, create buffer, upload data to the buffer
+		// bind buffer to draw call
+
 		SDL_GPUColorTargetDescription color_target_dscr = {};
 		color_target_dscr.format = SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window);
 
@@ -100,11 +109,81 @@ namespace BB3D
 		target_info_pipeline.num_color_targets = 1;
 		target_info_pipeline.color_target_descriptions = &color_target_dscr;
 
+		SDL_GPUBufferCreateInfo vbo_info = {};
+		vbo_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+		vbo_info.size = sizeof(Vertex) * 3;
+		vbo = SDL_CreateGPUBuffer(m_Device, &vbo_info);
+
+		// upload vertex data to vbo
+		//	- create transfer buffer
+		//	- map transfer buffer mem and copy from cpu
+		//	- begin copy pass
+		//	- invoke upload command
+		//	- end copy pass and submit
+		SDL_GPUTransferBufferCreateInfo transfer_create_info = {};
+		transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+		transfer_create_info.size = sizeof(Vertex) * 3;
+		SDL_GPUTransferBuffer* trans_buff = SDL_CreateGPUTransferBuffer(m_Device, &transfer_create_info);
+		
+		void* trans_ptr = SDL_MapGPUTransferBuffer(m_Device, trans_buff, false);
+		Vertex vertices[3] = {
+			{0.0, 0.5, 0.0, 0.95, 0.0, 0.0},
+			{0.5, -0.5, 0.0, 0.0, 0.95, 0.0},
+			{-0.5, -0.5, 0.0, 0.0, 0.0, 0.95}
+		};
+		std::memcpy(trans_ptr, &vertices, sizeof(Vertex) * 3);
+		SDL_UnmapGPUTransferBuffer(m_Device, trans_buff);
+
+		SDL_GPUCommandBuffer* copy_cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
+		SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(copy_cmd_buff);
+
+		SDL_GPUTransferBufferLocation trans_location = {};
+		trans_location.transfer_buffer = trans_buff;
+		trans_location.offset = 0;
+		SDL_GPUBufferRegion vbo_region = {};
+		vbo_region.buffer = vbo;
+		vbo_region.offset = 0;
+		vbo_region.size = sizeof(Vertex) * 3;
+
+		SDL_UploadToGPUBuffer(copy_pass, &trans_location, &vbo_region, false);
+
+		SDL_EndGPUCopyPass(copy_pass);
+		if (!SDL_SubmitGPUCommandBuffer(copy_cmd_buff))
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		// Vertex Attribs
+		// x, y, z, | r, g, b
+		SDL_GPUVertexAttribute attribs[2] = {};
+		attribs[0].location = 0;
+		attribs[0].buffer_slot = 0;
+		attribs[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		attribs[0].offset = 0;
+		attribs[1].location = 1;
+		attribs[1].buffer_slot = 0;
+		attribs[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+		attribs[1].offset = sizeof(float) * 3;
+
+		SDL_GPUVertexBufferDescription vbo_descr = {};
+		vbo_descr.slot = 0;
+		vbo_descr.pitch = sizeof(Vertex);
+		vbo_descr.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+		vbo_descr.instance_step_rate = 0;
+
+		SDL_GPUVertexInputState vert_input_state = {};
+		vert_input_state.num_vertex_attributes = 2;
+		vert_input_state.num_vertex_buffers = 1;
+		vert_input_state.vertex_buffer_descriptions = &vbo_descr;
+		vert_input_state.vertex_attributes = attribs;
+
 		SDL_GPUGraphicsPipelineCreateInfo create_info_pipeline = {};
 		create_info_pipeline.vertex_shader = vert_shader;
 		create_info_pipeline.fragment_shader = frag_shader;
 		create_info_pipeline.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 		create_info_pipeline.target_info = target_info_pipeline;
+		create_info_pipeline.vertex_input_state = vert_input_state;
 
 		m_Pipeline = SDL_CreateGPUGraphicsPipeline(m_Device, &create_info_pipeline);
 
@@ -161,6 +240,9 @@ namespace BB3D
 		// Draw Call
 
 		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
+		SDL_GPUBufferBinding binding = {vbo, 0};
+		SDL_BindGPUVertexBuffers(render_pass, 0, &binding, 1);
+
 		// Vertex Attributes - per vertex data
 		// Uniform Data - pew draw call
 		rot += 360.0f * m_Timer.elapsed_time;

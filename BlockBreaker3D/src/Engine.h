@@ -40,6 +40,7 @@ namespace BB3D
 		SDL_GPUDevice* m_Device;
 
 		SDL_GPUGraphicsPipeline* m_Pipeline;
+		SDL_GPUBuffer* vbo;
 	};
 
 	// Utility Functions
