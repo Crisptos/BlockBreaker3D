@@ -11,6 +11,7 @@ namespace BB3D
 	glm::mat4 proj(1.0f);
 	glm::mat4 model(1.0f);
 	glm::mat4 mvp(1.0f);
+	float rot = 0.0f;
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -160,7 +161,9 @@ namespace BB3D
 		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
 		// Vertex Attributes - per vertex data
 		// Uniform Data - pew draw call
-		model = glm::rotate(model, glm::radians(15.0f * m_Timer.elapsed_time), glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.0f));
+		model = glm::rotate(model, glm::radians(25.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		mvp = proj * model;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 

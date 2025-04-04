@@ -7,9 +7,9 @@ layout(set=1, binding = 0)uniform VBO {
 };
 
 vec3 positions[3] = vec3[](
-	vec3(0.0, 0.5, -2.0),
-	vec3(0.5, -0.5, -2.0),
-	vec3(-0.5, -0.5, -2.0)
+	vec3(0.0, 0.5, 0.0),
+	vec3(0.5, -0.5, 0.0),
+	vec3(-0.5, -0.5, 0.0)
 );
 
 vec3 colors[3] = vec3[](
