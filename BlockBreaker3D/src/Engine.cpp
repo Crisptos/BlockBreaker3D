@@ -7,10 +7,10 @@
 
 namespace BB3D
 {
+	// ________________________________ Globals (TEST) ________________________________
 	glm::mat4 proj(1.0f);
 	glm::mat4 model(1.0f);
 	glm::mat4 mvp(1.0f);
-	float rot = 0.5f;
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -63,6 +63,7 @@ namespace BB3D
 			{
 				Render();
 				Input();
+				UpdateDeltaTime();
 			}
 		}
 	}
@@ -159,8 +160,7 @@ namespace BB3D
 		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
 		// Vertex Attributes - per vertex data
 		// Uniform Data - pew draw call
-		if (rot >= 360.0f) rot = 0.0f;
-		model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::rotate(model, glm::radians(15.0f * m_Timer.elapsed_time), glm::vec3(0.0f, 0.0f, 1.0f));
 		mvp = proj * model;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 
@@ -189,6 +189,17 @@ namespace BB3D
 				}
 			}
 		}
+	}
+
+	void Engine::UpdateDeltaTime()
+	{
+		const float FRAME_TARGET_TIME = 1000.0f / 60.0f;
+
+		m_Timer.last_frame = m_Timer.current_frame;
+		m_Timer.current_frame = SDL_GetTicks();
+		m_Timer.elapsed_time = (m_Timer.current_frame - m_Timer.last_frame) / 1000.0f;
+
+		if (m_Timer.elapsed_time < FRAME_TARGET_TIME) SDL_Delay(FRAME_TARGET_TIME - m_Timer.elapsed_time);
 	}
 
 	// Utility Functions

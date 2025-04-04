@@ -6,6 +6,7 @@ namespace BB3D
 	class Engine
 	{
 	public:
+		// Lifetime
 		void Init();
 		void Run();
 		void Destroy();
@@ -17,6 +18,9 @@ namespace BB3D
 		// Runtime
 		void Input();
 		void Render();
+
+		// Utility
+		void UpdateDeltaTime();
 		
 
 	private:
@@ -24,13 +28,18 @@ namespace BB3D
 		// State
 		bool m_IsRunning = true;
 		bool m_IsIdle = false;
+		struct Timer
+		{
+			Uint64 last_frame;
+			Uint64 current_frame;
+			float elapsed_time;
+		} m_Timer;
 
 		// SDL Context
 		SDL_Window* m_Window;
 		SDL_GPUDevice* m_Device;
 
 		SDL_GPUGraphicsPipeline* m_Pipeline;
-
 	};
 
 	// Utility Functions
