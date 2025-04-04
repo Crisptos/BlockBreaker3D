@@ -41,6 +41,7 @@ namespace BB3D
 
 		SDL_GPUGraphicsPipeline* m_Pipeline;
 		SDL_GPUBuffer* vbo;
+		SDL_GPUBuffer* ibo;
 	};
 
 	// Utility Functions

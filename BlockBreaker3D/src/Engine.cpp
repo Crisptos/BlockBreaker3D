@@ -12,8 +12,6 @@ namespace BB3D
 	glm::mat4 model(1.0f);
 	glm::mat4 mvp(1.0f);
 	float rot = 0.0f;
-	float height = 0.0f;
-	bool dir = true;
 
 	struct Vertex
 	{
@@ -111,8 +109,13 @@ namespace BB3D
 
 		SDL_GPUBufferCreateInfo vbo_info = {};
 		vbo_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-		vbo_info.size = sizeof(Vertex) * 3;
+		vbo_info.size = sizeof(Vertex) * 4;
 		vbo = SDL_CreateGPUBuffer(m_Device, &vbo_info);
+
+		SDL_GPUBufferCreateInfo ibo_info = {};
+		ibo_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
+		ibo_info.size = sizeof(Uint16) * 6;
+		ibo = SDL_CreateGPUBuffer(m_Device, &ibo_info);
 
 		// upload vertex data to vbo
 		//	- create transfer buffer
@@ -122,16 +125,23 @@ namespace BB3D
 		//	- end copy pass and submit
 		SDL_GPUTransferBufferCreateInfo transfer_create_info = {};
 		transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-		transfer_create_info.size = sizeof(Vertex) * 3;
+		transfer_create_info.size = (sizeof(Vertex) * 4) + (sizeof(Uint16) * 6);
 		SDL_GPUTransferBuffer* trans_buff = SDL_CreateGPUTransferBuffer(m_Device, &transfer_create_info);
 		
 		void* trans_ptr = SDL_MapGPUTransferBuffer(m_Device, trans_buff, false);
-		Vertex vertices[3] = {
-			{0.0, 0.5, 0.0, 0.95, 0.0, 0.0},
-			{0.5, -0.5, 0.0, 0.0, 0.95, 0.0},
-			{-0.5, -0.5, 0.0, 0.0, 0.0, 0.95}
+		Vertex vertices[4] = {
+			{1.0, 1.0, 0.0, 0.95, 0.0, 0.0},  // tr 0
+			{1.0, -1.0, 0.0, 0.0, 0.95, 0.0}, // br 1
+			{-1.0, -1.0, 0.0, 0.0, 0.0, 0.95},// bl 2
+			{-1.0, 1.0, 0.0, 0.95, 0.0, 0.0}  // tl 3
 		};
-		std::memcpy(trans_ptr, &vertices, sizeof(Vertex) * 3);
+		Uint16 indices[6] = {
+			0, 1, 3,
+			1, 2, 3
+		};
+		
+		std::memcpy(trans_ptr, &vertices, sizeof(Vertex) * 4);
+		std::memcpy(reinterpret_cast<Vertex*>(trans_ptr) + 4, &indices, sizeof(Uint16) * 6); // Map the index data right after the vertex data | 4 Vertices | 6 Uint16s |
 		SDL_UnmapGPUTransferBuffer(m_Device, trans_buff);
 
 		SDL_GPUCommandBuffer* copy_cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
@@ -143,9 +153,14 @@ namespace BB3D
 		SDL_GPUBufferRegion vbo_region = {};
 		vbo_region.buffer = vbo;
 		vbo_region.offset = 0;
-		vbo_region.size = sizeof(Vertex) * 3;
+		vbo_region.size = sizeof(Vertex) * 4;
+		SDL_GPUBufferRegion ibo_region = {};
+		ibo_region.buffer = ibo;
+		ibo_region.offset = 0;
+		ibo_region.size = sizeof(Uint16) * 6;
 
 		SDL_UploadToGPUBuffer(copy_pass, &trans_location, &vbo_region, false);
+		SDL_UploadToGPUBuffer(copy_pass, &trans_location, &ibo_region, false);
 
 		SDL_EndGPUCopyPass(copy_pass);
 		if (!SDL_SubmitGPUCommandBuffer(copy_cmd_buff))
@@ -242,19 +257,21 @@ namespace BB3D
 		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
 		SDL_GPUBufferBinding binding = {vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass, 0, &binding, 1);
+		SDL_GPUBufferBinding ind_bind = { ibo, 0 };
+		SDL_BindGPUIndexBuffer(render_pass, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 
 		// Vertex Attributes - per vertex data
 		// Uniform Data - pew draw call
-		rot += 360.0f * m_Timer.elapsed_time;
+		rot += 90.0f * m_Timer.elapsed_time;
 		if (rot > 720.0f) rot = 0.0f;
 
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, height, -2.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -3.0f));
 		model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 		mvp = proj * model;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 
-		SDL_DrawGPUPrimitives(render_pass, 3, 1, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
 
 		SDL_EndGPURenderPass(render_pass);
 
