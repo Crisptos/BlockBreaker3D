@@ -77,6 +77,10 @@ namespace BB3D
 	void Engine::Destroy()
 	{
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_Pipeline);
+
+		SDL_ReleaseGPUBuffer(m_Device, vbo);
+		SDL_ReleaseGPUBuffer(m_Device, ibo);
+
 		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
 		SDL_DestroyWindow(m_Window);
 		SDL_DestroyGPUDevice(m_Device);
@@ -133,7 +137,7 @@ namespace BB3D
 			{1.0, 1.0, 0.0, 0.95, 0.0, 0.0},  // tr 0
 			{1.0, -1.0, 0.0, 0.0, 0.95, 0.0}, // br 1
 			{-1.0, -1.0, 0.0, 0.0, 0.0, 0.95},// bl 2
-			{-1.0, 1.0, 0.0, 0.95, 0.0, 0.0}  // tl 3
+			{-1.0, 1.0, 0.0, 0.95, 0.0, 0.95}  // tl 3
 		};
 		Uint16 indices[6] = {
 			0, 1, 3,
@@ -141,7 +145,7 @@ namespace BB3D
 		};
 		
 		std::memcpy(trans_ptr, &vertices, sizeof(Vertex) * 4);
-		std::memcpy(reinterpret_cast<Vertex*>(trans_ptr) + 4, &indices, sizeof(Uint16) * 6); // Map the index data right after the vertex data | 4 Vertices | 6 Uint16s |
+		std::memcpy(reinterpret_cast<Vertex*>(trans_ptr) + 4, &indices, sizeof(Uint16) * 6); // Map the index data right after the vertex data | 4 Vertices 96bytes | 6 Uint16s 12bytes | 108 bytes
 		SDL_UnmapGPUTransferBuffer(m_Device, trans_buff);
 
 		SDL_GPUCommandBuffer* copy_cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
@@ -160,9 +164,11 @@ namespace BB3D
 		ibo_region.size = sizeof(Uint16) * 6;
 
 		SDL_UploadToGPUBuffer(copy_pass, &trans_location, &vbo_region, false);
+		trans_location.offset = sizeof(Vertex) * 4;
 		SDL_UploadToGPUBuffer(copy_pass, &trans_location, &ibo_region, false);
 
 		SDL_EndGPUCopyPass(copy_pass);
+		SDL_ReleaseGPUTransferBuffer(m_Device, trans_buff);
 		if (!SDL_SubmitGPUCommandBuffer(copy_cmd_buff))
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU: %s\n", SDL_GetError());
