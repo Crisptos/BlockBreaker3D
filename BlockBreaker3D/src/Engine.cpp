@@ -1,6 +1,6 @@
 #include "Engine.h"
 #include <iostream>
-
+#include <stb_image.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -15,7 +15,7 @@ namespace BB3D
 
 	struct Vertex
 	{
-		float x, y, z, r, g, b;
+		float x, y, z, r, g, b, u, v;
 	};
 	// ________________________________ Engine Lifetime ________________________________
 
@@ -80,6 +80,8 @@ namespace BB3D
 
 		SDL_ReleaseGPUBuffer(m_Device, vbo);
 		SDL_ReleaseGPUBuffer(m_Device, ibo);
+		SDL_ReleaseGPUTexture(m_Device, m_TestTex);
+		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
 
 		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
 		SDL_DestroyWindow(m_Window);
@@ -92,7 +94,63 @@ namespace BB3D
 	void Engine::Setup()
 	{
 		SDL_GPUShader* vert_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* frag_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 0, 0, 0, 0);
+		SDL_GPUShader* frag_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+
+		// Load texture
+		//  Load the pixels
+		//  Create texture on the GPU
+		//  Upload pixels to GPU texture
+		//  Assign texture UV coordinates to vertices
+		//  Create sampler
+		//  Sample using UV in fragment shader
+		stbi_set_flip_vertically_on_load(true);
+		unsigned char* image_data = stbi_load("assets/metal_07.png", &m_Img.x, &m_Img.y, &m_Img.channels, 4);
+		if (!image_data) std::abort();
+
+		SDL_GPUTextureCreateInfo tex_info = {};
+		tex_info.type = SDL_GPU_TEXTURETYPE_2D;
+		tex_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+		tex_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+		tex_info.width = m_Img.x;
+		tex_info.height = m_Img.y;
+		tex_info.layer_count_or_depth = 1;
+		tex_info.num_levels = 1;
+		m_TestTex = SDL_CreateGPUTexture(m_Device, &tex_info);
+
+		SDL_GPUTransferBufferCreateInfo tex_transfer_create_info = {};
+		tex_transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+		tex_transfer_create_info.size = 4 * (m_Img.x * m_Img.y);
+		SDL_GPUTransferBuffer* tex_trans_buff = SDL_CreateGPUTransferBuffer(m_Device, &tex_transfer_create_info);
+
+		void* tex_trans_ptr = SDL_MapGPUTransferBuffer(m_Device, tex_trans_buff, false);
+		std::memcpy(tex_trans_ptr, image_data, 4 * (m_Img.x * m_Img.y));
+		SDL_UnmapGPUTransferBuffer(m_Device, tex_trans_buff);
+
+		SDL_GPUCommandBuffer* tex_copy_cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
+		SDL_GPUCopyPass* tex_copy_pass = SDL_BeginGPUCopyPass(tex_copy_cmd_buff);
+
+		SDL_GPUTextureTransferInfo tex_trans_info = {};
+		tex_trans_info.offset = 0;
+		tex_trans_info.transfer_buffer = tex_trans_buff;
+		SDL_GPUTextureRegion tex_trans_region = {};
+		tex_trans_region.texture = m_TestTex;
+		tex_trans_region.w = m_Img.x;
+		tex_trans_region.h = m_Img.y;
+		tex_trans_region.d = 1;
+		SDL_UploadToGPUTexture(tex_copy_pass, &tex_trans_info, &tex_trans_region, false);
+		SDL_EndGPUCopyPass(tex_copy_pass);
+		if (!SDL_SubmitGPUCommandBuffer(tex_copy_cmd_buff))
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU Texture: %s\n", SDL_GetError());
+			std::abort();
+		}
+		stbi_image_free(image_data);
+		SDL_ReleaseGPUTransferBuffer(m_Device, tex_trans_buff);
+
+		SDL_GPUSamplerCreateInfo sampler_info = {};
+		sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
+		sampler_info.mag_filter = SDL_GPU_FILTER_NEAREST;
+		m_Sampler = SDL_CreateGPUSampler(m_Device, &sampler_info);
 
 		if (!vert_shader || !frag_shader)
 		{
@@ -134,14 +192,15 @@ namespace BB3D
 		
 		void* trans_ptr = SDL_MapGPUTransferBuffer(m_Device, trans_buff, false);
 		Vertex vertices[4] = {
-			{1.0, 1.0, 0.0, 0.95, 0.0, 0.0},  // tr 0
-			{1.0, -1.0, 0.0, 0.0, 0.95, 0.0}, // br 1
-			{-1.0, -1.0, 0.0, 0.0, 0.0, 0.95},// bl 2
-			{-1.0, 1.0, 0.0, 0.95, 0.0, 0.95}  // tl 3
+			// XYZ RGB UV
+			{1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0},  // tr 0
+			{1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}, // br 1
+			{-1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0},// bl 2
+			{-1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0}  // tl 3
 		};
 		Uint16 indices[6] = {
-			0, 1, 3,
-			1, 2, 3
+			3, 0, 2,
+			2, 0, 1
 		};
 		
 		std::memcpy(trans_ptr, &vertices, sizeof(Vertex) * 4);
@@ -177,7 +236,7 @@ namespace BB3D
 
 		// Vertex Attribs
 		// x, y, z, | r, g, b
-		SDL_GPUVertexAttribute attribs[2] = {};
+		SDL_GPUVertexAttribute attribs[3] = {};
 		attribs[0].location = 0;
 		attribs[0].buffer_slot = 0;
 		attribs[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
@@ -186,6 +245,10 @@ namespace BB3D
 		attribs[1].buffer_slot = 0;
 		attribs[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
 		attribs[1].offset = sizeof(float) * 3;
+		attribs[2].location = 2;
+		attribs[2].buffer_slot = 0;
+		attribs[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+		attribs[2].offset = sizeof(float) * 6;
 
 		SDL_GPUVertexBufferDescription vbo_descr = {};
 		vbo_descr.slot = 0;
@@ -194,7 +257,7 @@ namespace BB3D
 		vbo_descr.instance_step_rate = 0;
 
 		SDL_GPUVertexInputState vert_input_state = {};
-		vert_input_state.num_vertex_attributes = 2;
+		vert_input_state.num_vertex_attributes = 3;
 		vert_input_state.num_vertex_buffers = 1;
 		vert_input_state.vertex_buffer_descriptions = &vbo_descr;
 		vert_input_state.vertex_attributes = attribs;
@@ -265,6 +328,8 @@ namespace BB3D
 		SDL_BindGPUVertexBuffers(render_pass, 0, &binding, 1);
 		SDL_GPUBufferBinding ind_bind = { ibo, 0 };
 		SDL_BindGPUIndexBuffer(render_pass, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+		SDL_GPUTextureSamplerBinding tex_bind = {m_TestTex, m_Sampler};
+		SDL_BindGPUFragmentSamplers(render_pass, 0, &tex_bind, 1);
 
 		// Vertex Attributes - per vertex data
 		// Uniform Data - pew draw call
@@ -349,6 +414,7 @@ namespace BB3D
 		shader_create_info.entrypoint = "main";
 		shader_create_info.format = supported_formats;
 		shader_create_info.stage = shader_stage;
+		shader_create_info.num_samplers = sampler_count;
 		shader_create_info.num_storage_textures = storage_texture_count;
 		shader_create_info.num_storage_buffers = storage_buffer_count;
 		shader_create_info.num_uniform_buffers = uniform_buffer_count;

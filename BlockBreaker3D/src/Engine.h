@@ -35,6 +35,11 @@ namespace BB3D
 			float elapsed_time;
 		} m_Timer;
 
+		struct Image
+		{
+			int x, y, channels;
+		} m_Img;
+
 		// SDL Context
 		SDL_Window* m_Window;
 		SDL_GPUDevice* m_Device;
@@ -42,6 +47,9 @@ namespace BB3D
 		SDL_GPUGraphicsPipeline* m_Pipeline;
 		SDL_GPUBuffer* vbo;
 		SDL_GPUBuffer* ibo;
+
+		SDL_GPUTexture* m_TestTex;
+		SDL_GPUSampler* m_Sampler;
 	};
 
 	// Utility Functions
