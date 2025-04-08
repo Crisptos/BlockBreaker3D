@@ -1,18 +1,25 @@
 #include "Engine.h"
 #include <iostream>
 #include <stb_image.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 namespace BB3D
 {
+	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath);
+
 	// ________________________________ Globals (TEST) ________________________________
 	glm::mat4 proj(1.0f);
 	glm::mat4 model(1.0f);
 	glm::mat4 mvp(1.0f);
 	float rot = 0.0f;
-	Mesh quad;
+	Mesh ico;
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -74,8 +81,8 @@ namespace BB3D
 	{
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_Pipeline);
 
-		SDL_ReleaseGPUBuffer(m_Device, quad.vbo);
-		SDL_ReleaseGPUBuffer(m_Device, quad.ibo);
+		SDL_ReleaseGPUBuffer(m_Device, ico.vbo);
+		SDL_ReleaseGPUBuffer(m_Device, ico.ibo);
 		SDL_ReleaseGPUTexture(m_Device, m_TestTex);
 		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
 
@@ -89,8 +96,8 @@ namespace BB3D
 
 	void Engine::Setup()
 	{
-		SDL_GPUShader* vert_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* frag_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+		SDL_GPUShader* vert_shader = CreateShaderFromFile(m_Device, "Shaders/quad.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* frag_shader = CreateShaderFromFile(m_Device, "Shaders/quad.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 
 		m_TestTex = CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png");
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
@@ -118,7 +125,7 @@ namespace BB3D
 			2, 0, 1
 		};
 
-		quad = CreateMesh(m_Device, vertices, indices);
+		ico = LoadMeshFromFile(m_Device, "assets/ico.obj");
 
 		// Vertex Attribs
 		// x, y, z, | r, g, b
@@ -159,7 +166,7 @@ namespace BB3D
 
 		SDL_ReleaseGPUShader(m_Device, vert_shader);
 		SDL_ReleaseGPUShader(m_Device, frag_shader);
-
+		
 		// Delete Me After
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
 	}
@@ -210,9 +217,9 @@ namespace BB3D
 		// Draw Call
 
 		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
-		SDL_GPUBufferBinding binding = {quad.vbo, 0};
+		SDL_GPUBufferBinding binding = {ico.vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass, 0, &binding, 1);
-		SDL_GPUBufferBinding ind_bind = { quad.ibo, 0 };
+		SDL_GPUBufferBinding ind_bind = { ico.ibo, 0 };
 		SDL_BindGPUIndexBuffer(render_pass, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 		SDL_GPUTextureSamplerBinding tex_bind = {m_TestTex, m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass, 0, &tex_bind, 1);
@@ -228,7 +235,7 @@ namespace BB3D
 		mvp = proj * model;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 
-		SDL_DrawGPUIndexedPrimitives(render_pass, 6, 1, 0, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(render_pass, ico.ind_count, 1, 0, 0, 0);
 
 		SDL_EndGPURenderPass(render_pass);
 
@@ -264,5 +271,52 @@ namespace BB3D
 		m_Timer.elapsed_time = (m_Timer.current_frame - m_Timer.last_frame) / 1000.0f;
 
 		if (m_Timer.elapsed_time < FRAME_TARGET_TIME) SDL_Delay(FRAME_TARGET_TIME - m_Timer.elapsed_time);
+	}
+
+	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath)
+	{
+		Assimp::Importer importer;
+		const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs);
+		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to load model from %s: ASSIMP: %s\n", filepath, importer.GetErrorString());
+			std::abort();
+		}
+
+		aiMesh* loaded_mesh = scene->mMeshes[0];
+
+		std::vector<Vertex> loaded_vertices = {};
+		std::vector<Uint16> loaded_indices = {};
+
+		for (int i = 0; i < loaded_mesh->mNumVertices; i++)
+		{
+			Vertex new_vert = {};
+
+			new_vert.x = loaded_mesh->mVertices[i].x;
+			new_vert.y = loaded_mesh->mVertices[i].y;
+			new_vert.z = loaded_mesh->mVertices[i].z;
+			new_vert.r = 1.0f;
+			new_vert.g = 1.0f;
+			new_vert.b = 1.0f;
+			new_vert.u = loaded_mesh->mTextureCoords[0][i].x;
+			new_vert.v = loaded_mesh->mTextureCoords[0][i].y;
+
+
+			loaded_vertices.push_back(new_vert);
+		}
+
+		for (int i = 0; i < loaded_mesh->mNumFaces; i++)
+		{
+			aiFace face = loaded_mesh->mFaces[i];
+			for (int j = 0; j < face.mNumIndices; j++)
+			{
+				loaded_indices.push_back(static_cast<Uint16>(face.mIndices[j]));
+			}
+		}
+
+		Mesh new_mesh = CreateMesh(device, loaded_vertices, loaded_indices);
+		new_mesh.vert_count = loaded_vertices.size();
+		new_mesh.ind_count = loaded_indices.size();
+		return new_mesh;
 	}
 }

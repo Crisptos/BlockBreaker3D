@@ -64,6 +64,8 @@ namespace BB3D
 	{
 		SDL_GPUBuffer* vbo;
 		SDL_GPUBuffer* ibo;
+		int vert_count;
+		int ind_count;
 	};
 
 	struct Vertex
