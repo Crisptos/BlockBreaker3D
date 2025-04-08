@@ -12,11 +12,7 @@ namespace BB3D
 	glm::mat4 model(1.0f);
 	glm::mat4 mvp(1.0f);
 	float rot = 0.0f;
-
-	struct Vertex
-	{
-		float x, y, z, r, g, b, u, v;
-	};
+	Mesh quad;
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -78,8 +74,8 @@ namespace BB3D
 	{
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_Pipeline);
 
-		SDL_ReleaseGPUBuffer(m_Device, vbo);
-		SDL_ReleaseGPUBuffer(m_Device, ibo);
+		SDL_ReleaseGPUBuffer(m_Device, quad.vbo);
+		SDL_ReleaseGPUBuffer(m_Device, quad.ibo);
 		SDL_ReleaseGPUTexture(m_Device, m_TestTex);
 		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
 
@@ -96,72 +92,12 @@ namespace BB3D
 		SDL_GPUShader* vert_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
 		SDL_GPUShader* frag_shader = CreateShaderFromFile(m_Device, "Shaders/triangle.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 
-		// Load texture
-		//  Load the pixels
-		//  Create texture on the GPU
-		//  Upload pixels to GPU texture
-		//  Assign texture UV coordinates to vertices
-		//  Create sampler
-		//  Sample using UV in fragment shader
-		stbi_set_flip_vertically_on_load(true);
-		unsigned char* image_data = stbi_load("assets/metal_07.png", &m_Img.x, &m_Img.y, &m_Img.channels, 4);
-		if (!image_data) std::abort();
-
-		SDL_GPUTextureCreateInfo tex_info = {};
-		tex_info.type = SDL_GPU_TEXTURETYPE_2D;
-		tex_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-		tex_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
-		tex_info.width = m_Img.x;
-		tex_info.height = m_Img.y;
-		tex_info.layer_count_or_depth = 1;
-		tex_info.num_levels = 1;
-		m_TestTex = SDL_CreateGPUTexture(m_Device, &tex_info);
-
-		SDL_GPUTransferBufferCreateInfo tex_transfer_create_info = {};
-		tex_transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-		tex_transfer_create_info.size = 4 * (m_Img.x * m_Img.y);
-		SDL_GPUTransferBuffer* tex_trans_buff = SDL_CreateGPUTransferBuffer(m_Device, &tex_transfer_create_info);
-
-		void* tex_trans_ptr = SDL_MapGPUTransferBuffer(m_Device, tex_trans_buff, false);
-		std::memcpy(tex_trans_ptr, image_data, 4 * (m_Img.x * m_Img.y));
-		SDL_UnmapGPUTransferBuffer(m_Device, tex_trans_buff);
-
-		SDL_GPUCommandBuffer* tex_copy_cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
-		SDL_GPUCopyPass* tex_copy_pass = SDL_BeginGPUCopyPass(tex_copy_cmd_buff);
-
-		SDL_GPUTextureTransferInfo tex_trans_info = {};
-		tex_trans_info.offset = 0;
-		tex_trans_info.transfer_buffer = tex_trans_buff;
-		SDL_GPUTextureRegion tex_trans_region = {};
-		tex_trans_region.texture = m_TestTex;
-		tex_trans_region.w = m_Img.x;
-		tex_trans_region.h = m_Img.y;
-		tex_trans_region.d = 1;
-		SDL_UploadToGPUTexture(tex_copy_pass, &tex_trans_info, &tex_trans_region, false);
-		SDL_EndGPUCopyPass(tex_copy_pass);
-		if (!SDL_SubmitGPUCommandBuffer(tex_copy_cmd_buff))
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU Texture: %s\n", SDL_GetError());
-			std::abort();
-		}
-		stbi_image_free(image_data);
-		SDL_ReleaseGPUTransferBuffer(m_Device, tex_trans_buff);
-
-		SDL_GPUSamplerCreateInfo sampler_info = {};
-		sampler_info.min_filter = SDL_GPU_FILTER_NEAREST;
-		sampler_info.mag_filter = SDL_GPU_FILTER_NEAREST;
-		m_Sampler = SDL_CreateGPUSampler(m_Device, &sampler_info);
-
-		if (!vert_shader || !frag_shader)
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to create GPU Pipeline shaders: %s\n", SDL_GetError());
-			std::abort();
-		}
+		m_TestTex = CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png");
+		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 
 		// Describe vertex attributes and buffers in pipeline
 		// create vertex data, create buffer, upload data to the buffer
 		// bind buffer to draw call
-
 		SDL_GPUColorTargetDescription color_target_dscr = {};
 		color_target_dscr.format = SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window);
 
@@ -169,70 +105,20 @@ namespace BB3D
 		target_info_pipeline.num_color_targets = 1;
 		target_info_pipeline.color_target_descriptions = &color_target_dscr;
 
-		SDL_GPUBufferCreateInfo vbo_info = {};
-		vbo_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-		vbo_info.size = sizeof(Vertex) * 4;
-		vbo = SDL_CreateGPUBuffer(m_Device, &vbo_info);
-
-		SDL_GPUBufferCreateInfo ibo_info = {};
-		ibo_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-		ibo_info.size = sizeof(Uint16) * 6;
-		ibo = SDL_CreateGPUBuffer(m_Device, &ibo_info);
-
-		// upload vertex data to vbo
-		//	- create transfer buffer
-		//	- map transfer buffer mem and copy from cpu
-		//	- begin copy pass
-		//	- invoke upload command
-		//	- end copy pass and submit
-		SDL_GPUTransferBufferCreateInfo transfer_create_info = {};
-		transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-		transfer_create_info.size = (sizeof(Vertex) * 4) + (sizeof(Uint16) * 6);
-		SDL_GPUTransferBuffer* trans_buff = SDL_CreateGPUTransferBuffer(m_Device, &transfer_create_info);
-		
-		void* trans_ptr = SDL_MapGPUTransferBuffer(m_Device, trans_buff, false);
-		Vertex vertices[4] = {
+		std::vector<Vertex> vertices = {
 			// XYZ RGB UV
 			{1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0},  // tr 0
 			{1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}, // br 1
 			{-1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0},// bl 2
 			{-1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0}  // tl 3
 		};
-		Uint16 indices[6] = {
+
+		std::vector<Uint16> indices = {
 			3, 0, 2,
 			2, 0, 1
 		};
-		
-		std::memcpy(trans_ptr, &vertices, sizeof(Vertex) * 4);
-		std::memcpy(reinterpret_cast<Vertex*>(trans_ptr) + 4, &indices, sizeof(Uint16) * 6); // Map the index data right after the vertex data | 4 Vertices 96bytes | 6 Uint16s 12bytes | 108 bytes
-		SDL_UnmapGPUTransferBuffer(m_Device, trans_buff);
 
-		SDL_GPUCommandBuffer* copy_cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
-		SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(copy_cmd_buff);
-
-		SDL_GPUTransferBufferLocation trans_location = {};
-		trans_location.transfer_buffer = trans_buff;
-		trans_location.offset = 0;
-		SDL_GPUBufferRegion vbo_region = {};
-		vbo_region.buffer = vbo;
-		vbo_region.offset = 0;
-		vbo_region.size = sizeof(Vertex) * 4;
-		SDL_GPUBufferRegion ibo_region = {};
-		ibo_region.buffer = ibo;
-		ibo_region.offset = 0;
-		ibo_region.size = sizeof(Uint16) * 6;
-
-		SDL_UploadToGPUBuffer(copy_pass, &trans_location, &vbo_region, false);
-		trans_location.offset = sizeof(Vertex) * 4;
-		SDL_UploadToGPUBuffer(copy_pass, &trans_location, &ibo_region, false);
-
-		SDL_EndGPUCopyPass(copy_pass);
-		SDL_ReleaseGPUTransferBuffer(m_Device, trans_buff);
-		if (!SDL_SubmitGPUCommandBuffer(copy_cmd_buff))
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU: %s\n", SDL_GetError());
-			std::abort();
-		}
+		quad = CreateMesh(m_Device, vertices, indices);
 
 		// Vertex Attribs
 		// x, y, z, | r, g, b
@@ -324,9 +210,9 @@ namespace BB3D
 		// Draw Call
 
 		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
-		SDL_GPUBufferBinding binding = {vbo, 0};
+		SDL_GPUBufferBinding binding = {quad.vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass, 0, &binding, 1);
-		SDL_GPUBufferBinding ind_bind = { ibo, 0 };
+		SDL_GPUBufferBinding ind_bind = { quad.ibo, 0 };
 		SDL_BindGPUIndexBuffer(render_pass, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 		SDL_GPUTextureSamplerBinding tex_bind = {m_TestTex, m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass, 0, &tex_bind, 1);
@@ -378,54 +264,5 @@ namespace BB3D
 		m_Timer.elapsed_time = (m_Timer.current_frame - m_Timer.last_frame) / 1000.0f;
 
 		if (m_Timer.elapsed_time < FRAME_TARGET_TIME) SDL_Delay(FRAME_TARGET_TIME - m_Timer.elapsed_time);
-	}
-
-	// Utility Functions
-	SDL_GPUShader* CreateShaderFromFile(
-		SDL_GPUDevice* device,
-		const char* file_path,
-		SDL_GPUShaderStage shader_stage,
-		Uint32 sampler_count,
-		Uint32 uniform_buffer_count,
-		Uint32 storage_buffer_count,
-		Uint32 storage_texture_count
-	)
-	{
-		SDL_GPUShader* new_shader;
-
-		SDL_GPUShaderFormat supported_formats = SDL_GetGPUShaderFormats(device);
-		if (!(supported_formats & SDL_GPU_SHADERFORMAT_SPIRV))
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Device context does not support the target shader format (SPIR-V)");
-			std::abort();
-		}
-
-		size_t source_size = 0;
-		void* shader_source = SDL_LoadFile(file_path, &source_size);
-		if (!shader_source)
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Couldn't locate file at: %s\n", file_path);
-			std::abort();
-		}
-
-		SDL_GPUShaderCreateInfo shader_create_info = {};
-		shader_create_info.code = static_cast<Uint8*>(shader_source);
-		shader_create_info.code_size = source_size;
-		shader_create_info.entrypoint = "main";
-		shader_create_info.format = supported_formats;
-		shader_create_info.stage = shader_stage;
-		shader_create_info.num_samplers = sampler_count;
-		shader_create_info.num_storage_textures = storage_texture_count;
-		shader_create_info.num_storage_buffers = storage_buffer_count;
-		shader_create_info.num_uniform_buffers = uniform_buffer_count;
-
-		new_shader = SDL_CreateGPUShader(
-			device,
-			&shader_create_info
-		);
-
-		SDL_free(shader_source);
-
-		return new_shader;
 	}
 }
