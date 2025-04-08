@@ -2,8 +2,59 @@
 #include <iostream>
 #include <vector>
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 namespace BB3D
 {
+	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath)
+	{
+		Assimp::Importer importer;
+		const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs);
+		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to load model from %s: ASSIMP: %s\n", filepath, importer.GetErrorString());
+			std::abort();
+		}
+
+		aiMesh* loaded_mesh = scene->mMeshes[0];
+
+		std::vector<Vertex> loaded_vertices = {};
+		std::vector<Uint16> loaded_indices = {};
+
+		for (int i = 0; i < loaded_mesh->mNumVertices; i++)
+		{
+			Vertex new_vert = {};
+
+			new_vert.x = loaded_mesh->mVertices[i].x;
+			new_vert.y = loaded_mesh->mVertices[i].y;
+			new_vert.z = loaded_mesh->mVertices[i].z;
+			new_vert.r = 1.0f;
+			new_vert.g = 1.0f;
+			new_vert.b = 1.0f;
+			new_vert.u = loaded_mesh->mTextureCoords[0][i].x;
+			new_vert.v = loaded_mesh->mTextureCoords[0][i].y;
+
+
+			loaded_vertices.push_back(new_vert);
+		}
+
+		for (int i = 0; i < loaded_mesh->mNumFaces; i++)
+		{
+			aiFace face = loaded_mesh->mFaces[i];
+			for (int j = 0; j < face.mNumIndices; j++)
+			{
+				loaded_indices.push_back(static_cast<Uint16>(face.mIndices[j]));
+			}
+		}
+
+		Mesh new_mesh = CreateMesh(device, loaded_vertices, loaded_indices);
+		new_mesh.vert_count = loaded_vertices.size();
+		new_mesh.ind_count = loaded_indices.size();
+		return new_mesh;
+	}
+
 	Mesh CreateMesh(SDL_GPUDevice* device, std::vector<Vertex> vertices, std::vector<Uint16> indices)
 	{
 		// upload vertex data to vbo
@@ -71,5 +122,4 @@ namespace BB3D
 
 		return new_mesh;
 	}
-
 }

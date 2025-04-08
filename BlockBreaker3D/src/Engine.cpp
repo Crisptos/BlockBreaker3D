@@ -6,20 +6,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 namespace BB3D
 {
-	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath);
-
 	// ________________________________ Globals (TEST) ________________________________
 	glm::mat4 proj(1.0f);
 	glm::mat4 model(1.0f);
 	glm::mat4 mvp(1.0f);
 	float rot = 0.0f;
 	Mesh ico;
+
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -84,6 +79,7 @@ namespace BB3D
 		SDL_ReleaseGPUBuffer(m_Device, ico.vbo);
 		SDL_ReleaseGPUBuffer(m_Device, ico.ibo);
 		SDL_ReleaseGPUTexture(m_Device, m_TestTex);
+		SDL_ReleaseGPUTexture(m_Device, m_DepthTex);
 		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
 
 		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
@@ -101,6 +97,7 @@ namespace BB3D
 
 		m_TestTex = CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png");
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
+		m_DepthTex = CreateDepthTestTexture(m_Device, 1280, 720);
 
 		// Describe vertex attributes and buffers in pipeline
 		// create vertex data, create buffer, upload data to the buffer
@@ -111,6 +108,8 @@ namespace BB3D
 		SDL_GPUGraphicsPipelineTargetInfo target_info_pipeline = {};
 		target_info_pipeline.num_color_targets = 1;
 		target_info_pipeline.color_target_descriptions = &color_target_dscr;
+		target_info_pipeline.has_depth_stencil_target = true;
+		target_info_pipeline.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
 
 		std::vector<Vertex> vertices = {
 			// XYZ RGB UV
@@ -155,12 +154,18 @@ namespace BB3D
 		vert_input_state.vertex_buffer_descriptions = &vbo_descr;
 		vert_input_state.vertex_attributes = attribs;
 
+		SDL_GPUDepthStencilState depth_state = {};
+		depth_state.enable_depth_test = true;
+		depth_state.enable_depth_write = true;
+		depth_state.compare_op = SDL_GPU_COMPAREOP_LESS;
+
 		SDL_GPUGraphicsPipelineCreateInfo create_info_pipeline = {};
 		create_info_pipeline.vertex_shader = vert_shader;
 		create_info_pipeline.fragment_shader = frag_shader;
 		create_info_pipeline.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 		create_info_pipeline.target_info = target_info_pipeline;
 		create_info_pipeline.vertex_input_state = vert_input_state;
+		create_info_pipeline.depth_stencil_state = depth_state;
 
 		m_Pipeline = SDL_CreateGPUGraphicsPipeline(m_Device, &create_info_pipeline);
 
@@ -204,18 +209,23 @@ namespace BB3D
 		color_target_info.clear_color = {0.87, 0.85, 0.88, 1.0};
 		color_target_info.store_op = SDL_GPU_STOREOP_STORE;
 
+		SDL_GPUDepthStencilTargetInfo depth_stencil_target_info = {};
+		depth_stencil_target_info.texture = m_DepthTex;
+		depth_stencil_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
+		depth_stencil_target_info.clear_depth = 1;
+		depth_stencil_target_info.store_op = SDL_GPU_STOREOP_DONT_CARE;
+
 		SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(
 			cmd_buff,
 			&color_target_info,
 			1,
-			nullptr
+			&depth_stencil_target_info
 		);
 
 		// Bind Pipeline
 		// Bind Vertex Data
 		// Bind Uniform
 		// Draw Call
-
 		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
 		SDL_GPUBufferBinding binding = {ico.vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass, 0, &binding, 1);
@@ -230,7 +240,7 @@ namespace BB3D
 		if (rot > 720.0f) rot = 0.0f;
 
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -3.0f));
+		model = glm::translate(model, glm::vec3(0.0f, -0.5f, -4.0f));
 		model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 		mvp = proj * model;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
@@ -271,52 +281,5 @@ namespace BB3D
 		m_Timer.elapsed_time = (m_Timer.current_frame - m_Timer.last_frame) / 1000.0f;
 
 		if (m_Timer.elapsed_time < FRAME_TARGET_TIME) SDL_Delay(FRAME_TARGET_TIME - m_Timer.elapsed_time);
-	}
-
-	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath)
-	{
-		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs);
-		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to load model from %s: ASSIMP: %s\n", filepath, importer.GetErrorString());
-			std::abort();
-		}
-
-		aiMesh* loaded_mesh = scene->mMeshes[0];
-
-		std::vector<Vertex> loaded_vertices = {};
-		std::vector<Uint16> loaded_indices = {};
-
-		for (int i = 0; i < loaded_mesh->mNumVertices; i++)
-		{
-			Vertex new_vert = {};
-
-			new_vert.x = loaded_mesh->mVertices[i].x;
-			new_vert.y = loaded_mesh->mVertices[i].y;
-			new_vert.z = loaded_mesh->mVertices[i].z;
-			new_vert.r = 1.0f;
-			new_vert.g = 1.0f;
-			new_vert.b = 1.0f;
-			new_vert.u = loaded_mesh->mTextureCoords[0][i].x;
-			new_vert.v = loaded_mesh->mTextureCoords[0][i].y;
-
-
-			loaded_vertices.push_back(new_vert);
-		}
-
-		for (int i = 0; i < loaded_mesh->mNumFaces; i++)
-		{
-			aiFace face = loaded_mesh->mFaces[i];
-			for (int j = 0; j < face.mNumIndices; j++)
-			{
-				loaded_indices.push_back(static_cast<Uint16>(face.mIndices[j]));
-			}
-		}
-
-		Mesh new_mesh = CreateMesh(device, loaded_vertices, loaded_indices);
-		new_mesh.vert_count = loaded_vertices.size();
-		new_mesh.ind_count = loaded_indices.size();
-		return new_mesh;
 	}
 }

@@ -41,6 +41,7 @@ namespace BB3D
 		SDL_GPUDevice* m_Device;
 
 		SDL_GPUGraphicsPipeline* m_Pipeline;
+		SDL_GPUTexture* m_DepthTex;
 
 		SDL_GPUTexture* m_TestTex;
 		SDL_GPUSampler* m_Sampler;
@@ -73,6 +74,7 @@ namespace BB3D
 		float x, y, z, r, g, b, u, v;
 	};
 
+	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath);
 	Mesh CreateMesh(SDL_GPUDevice* device, std::vector<Vertex> vertices, std::vector<Uint16> indices);
 
 	// ________________________________ Texture.cpp ________________________________
@@ -81,6 +83,7 @@ namespace BB3D
 		int x, y, channels;
 	};
 
+	SDL_GPUTexture* CreateDepthTestTexture(SDL_GPUDevice* device, int render_target_w, int render_target_h);
 	SDL_GPUTexture* CreateAndLoadTextureToGPU(SDL_GPUDevice* device, const char* filepath);
 	SDL_GPUSampler* CreateSampler(SDL_GPUDevice* device, SDL_GPUFilter texture_filter);
 }

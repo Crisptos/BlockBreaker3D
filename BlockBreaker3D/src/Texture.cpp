@@ -4,6 +4,28 @@
 
 namespace BB3D
 {
+	SDL_GPUTexture* CreateDepthTestTexture(SDL_GPUDevice* device, int render_target_w, int render_target_h)
+	{
+		SDL_GPUTexture* new_depth_texture = {};
+
+		SDL_GPUTextureCreateInfo tex_info = {};
+		tex_info.type = SDL_GPU_TEXTURETYPE_2D;
+		tex_info.format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+		tex_info.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET;
+		tex_info.width = render_target_w;
+		tex_info.height = render_target_h;
+		tex_info.layer_count_or_depth = 1;
+		tex_info.num_levels = 1;
+		new_depth_texture = SDL_CreateGPUTexture(device, &tex_info);
+		if (!new_depth_texture)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to create GPU depth test texture: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		return new_depth_texture;
+	}
+
 	SDL_GPUTexture* CreateAndLoadTextureToGPU(SDL_GPUDevice* device, const char* filepath)
 	{
 		// Load texture
