@@ -4,6 +4,80 @@
 
 namespace BB3D
 {
+	SDL_GPUTexture* CreateCubeMap(SDL_GPUDevice* device, std::array<std::string, 6> filepaths)
+	{
+		SDL_GPUTexture* new_cubemap_texture = {};
+
+		unsigned char* cube_faces_img_data[6];
+		Image cube_faces_img_props = {};
+
+		// TODO - Enforce cubemap props are the same per face
+		for (int i = 0; i < 6; i++)
+		{
+			stbi_set_flip_vertically_on_load(false);
+			cube_faces_img_data[i] = stbi_load(
+				filepaths[i].c_str(), 
+				&cube_faces_img_props.x, 
+				&cube_faces_img_props.y,
+				&cube_faces_img_props.channels,
+				4
+			);
+
+			if (!cube_faces_img_data[i])
+			{
+				SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to load cubemap texture face file from: %s | idx = %d\n", filepaths[i].c_str(), i);
+				std::abort();
+			}
+		}
+
+		SDL_GPUTextureCreateInfo cubemap_info = {};
+		cubemap_info.type = SDL_GPU_TEXTURETYPE_CUBE;
+		cubemap_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+		cubemap_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+		cubemap_info.width = cube_faces_img_props.x;
+		cubemap_info.height = cube_faces_img_props.y;
+		cubemap_info.layer_count_or_depth = 1;
+		cubemap_info.num_levels = 1;
+
+		new_cubemap_texture = SDL_CreateGPUTexture(device, &cubemap_info);
+		if (!new_cubemap_texture)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to create GPU cubemap texture: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		SDL_GPUTransferBufferCreateInfo cubemap_transfer_create_info = {};
+		cubemap_transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+		cubemap_transfer_create_info.size = (4 * (cube_faces_img_props.x * cube_faces_img_props.y)) * 6; // 6 images
+		SDL_GPUTransferBuffer* cubemap_trans_buff = SDL_CreateGPUTransferBuffer(device, &cubemap_transfer_create_info);
+		if (!cubemap_trans_buff)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to create transfer buffer for File -> GPU Texture: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		void* cubemap_trans_ptr = SDL_MapGPUTransferBuffer(device, cubemap_trans_buff, false);
+		if (!cubemap_trans_ptr)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to map transfer buffer for File -> GPU Texture: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		// Copy all 6 images into the buffer
+		std::memcpy(cubemap_trans_ptr, cube_faces_img_data, (4 * (cube_faces_img_props.x * cube_faces_img_props.y)) * 6);
+
+		SDL_UnmapGPUTransferBuffer(device, cubemap_trans_buff);
+
+		// Free stbi image data
+		for (int i = 0; i < 6; i++)
+		{
+			stbi_image_free(cube_faces_img_data[i]);
+		}
+
+
+		return new_cubemap_texture;
+	}
+
 	SDL_GPUTexture* CreateDepthTestTexture(SDL_GPUDevice* device, int render_target_w, int render_target_h)
 	{
 		SDL_GPUTexture* new_depth_texture = {};

@@ -1,6 +1,8 @@
 #pragma once
 #include <SDL3/SDL.h>
 #include <vector>
+#include <array>
+#include <string>
 
 namespace BB3D
 {
@@ -60,7 +62,6 @@ namespace BB3D
 	);
 
 	// ________________________________ Mesh.cpp ________________________________
-	//     Utility Functions
 	struct Mesh
 	{
 		SDL_GPUBuffer* vbo;
@@ -74,6 +75,7 @@ namespace BB3D
 		float x, y, z, r, g, b, u, v;
 	};
 
+	//     Utility Functions
 	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath);
 	Mesh CreateMesh(SDL_GPUDevice* device, std::vector<Vertex> vertices, std::vector<Uint16> indices);
 
@@ -83,7 +85,12 @@ namespace BB3D
 		int x, y, channels;
 	};
 
+	SDL_GPUTexture* CreateCubeMap(SDL_GPUDevice* device, std::array<std::string, 6> filepaths);
 	SDL_GPUTexture* CreateDepthTestTexture(SDL_GPUDevice* device, int render_target_w, int render_target_h);
 	SDL_GPUTexture* CreateAndLoadTextureToGPU(SDL_GPUDevice* device, const char* filepath);
 	SDL_GPUSampler* CreateSampler(SDL_GPUDevice* device, SDL_GPUFilter texture_filter);
+
+	// ________________________________ GraphicsPipeline.cpp ________________________________
+	// Utility Functions
+	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForModels(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
 }

@@ -79,7 +79,7 @@ namespace BB3D
 		SDL_ReleaseGPUBuffer(m_Device, ico.vbo);
 		SDL_ReleaseGPUBuffer(m_Device, ico.ibo);
 		SDL_ReleaseGPUTexture(m_Device, m_TestTex);
-		SDL_ReleaseGPUTexture(m_Device, m_DepthTex);
+		SDL_ReleaseGPUTexture(m_Device, m_DepthTex);	
 		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
 
 		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
@@ -99,75 +99,27 @@ namespace BB3D
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 		m_DepthTex = CreateDepthTestTexture(m_Device, 1280, 720);
 
-		// Describe vertex attributes and buffers in pipeline
-		// create vertex data, create buffer, upload data to the buffer
-		// bind buffer to draw call
-		SDL_GPUColorTargetDescription color_target_dscr = {};
-		color_target_dscr.format = SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window);
+		//std::vector<Vertex> vertices = {
+		//	// XYZ RGB UV
+		//	{1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0},  // tr 0
+		//	{1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}, // br 1
+		//	{-1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0},// bl 2
+		//	{-1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0}  // tl 3
+		//};
 
-		SDL_GPUGraphicsPipelineTargetInfo target_info_pipeline = {};
-		target_info_pipeline.num_color_targets = 1;
-		target_info_pipeline.color_target_descriptions = &color_target_dscr;
-		target_info_pipeline.has_depth_stencil_target = true;
-		target_info_pipeline.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
-
-		std::vector<Vertex> vertices = {
-			// XYZ RGB UV
-			{1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0},  // tr 0
-			{1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}, // br 1
-			{-1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0},// bl 2
-			{-1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0}  // tl 3
-		};
-
-		std::vector<Uint16> indices = {
-			3, 0, 2,
-			2, 0, 1
-		};
+		//std::vector<Uint16> indices = {
+		//	3, 0, 2,
+		//	2, 0, 1
+		//};
 
 		ico = LoadMeshFromFile(m_Device, "assets/ico.obj");
 
-		// Vertex Attribs
-		// x, y, z, | r, g, b
-		SDL_GPUVertexAttribute attribs[3] = {};
-		attribs[0].location = 0;
-		attribs[0].buffer_slot = 0;
-		attribs[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-		attribs[0].offset = 0;
-		attribs[1].location = 1;
-		attribs[1].buffer_slot = 0;
-		attribs[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
-		attribs[1].offset = sizeof(float) * 3;
-		attribs[2].location = 2;
-		attribs[2].buffer_slot = 0;
-		attribs[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
-		attribs[2].offset = sizeof(float) * 6;
-
-		SDL_GPUVertexBufferDescription vbo_descr = {};
-		vbo_descr.slot = 0;
-		vbo_descr.pitch = sizeof(Vertex);
-		vbo_descr.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
-		vbo_descr.instance_step_rate = 0;
-
-		SDL_GPUVertexInputState vert_input_state = {};
-		vert_input_state.num_vertex_attributes = 3;
-		vert_input_state.num_vertex_buffers = 1;
-		vert_input_state.vertex_buffer_descriptions = &vbo_descr;
-		vert_input_state.vertex_attributes = attribs;
-
-		SDL_GPUDepthStencilState depth_state = {};
-		depth_state.enable_depth_test = true;
-		depth_state.enable_depth_write = true;
-		depth_state.compare_op = SDL_GPU_COMPAREOP_LESS;
-
-		SDL_GPUGraphicsPipelineCreateInfo create_info_pipeline = {};
-		create_info_pipeline.vertex_shader = vert_shader;
-		create_info_pipeline.fragment_shader = frag_shader;
-		create_info_pipeline.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-		create_info_pipeline.target_info = target_info_pipeline;
-		create_info_pipeline.vertex_input_state = vert_input_state;
-		create_info_pipeline.depth_stencil_state = depth_state;
-
-		m_Pipeline = SDL_CreateGPUGraphicsPipeline(m_Device, &create_info_pipeline);
+		m_Pipeline = CreateGraphicsPipelineForModels(
+			m_Device, 
+			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			vert_shader,
+			frag_shader
+		);
 
 		SDL_ReleaseGPUShader(m_Device, vert_shader);
 		SDL_ReleaseGPUShader(m_Device, frag_shader);
