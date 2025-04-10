@@ -4,6 +4,33 @@
 
 namespace BB3D
 {
+	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForSkybox(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader)
+	{
+		SDL_GPUGraphicsPipeline* new_pipeline = {};
+
+		SDL_GPUColorTargetDescription color_target_dscr = {};
+		color_target_dscr.format = color_target_format;
+
+		SDL_GPUGraphicsPipelineTargetInfo target_info_pipeline = {};
+		target_info_pipeline.num_color_targets = 1;
+		target_info_pipeline.color_target_descriptions = &color_target_dscr;
+
+		SDL_GPUGraphicsPipelineCreateInfo create_info_pipeline = {};
+		create_info_pipeline.vertex_shader = vert_shader;
+		create_info_pipeline.fragment_shader = frag_shader;
+		create_info_pipeline.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+		create_info_pipeline.target_info = target_info_pipeline;
+
+		new_pipeline = SDL_CreateGPUGraphicsPipeline(device, &create_info_pipeline);
+		if (!new_pipeline)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to create GPU pipeline for skybox: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		return new_pipeline;
+	}
+
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForModels(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader)
 	{
 		SDL_GPUGraphicsPipeline* new_pipeline = {};
@@ -60,6 +87,11 @@ namespace BB3D
 		create_info_pipeline.depth_stencil_state = depth_state;
 
 		new_pipeline = SDL_CreateGPUGraphicsPipeline(device, &create_info_pipeline);
+		if (!new_pipeline)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to create GPU pipeline for models: %s\n", SDL_GetError());
+			std::abort();
+		}
 
 		return new_pipeline;
 	}

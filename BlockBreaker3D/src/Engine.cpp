@@ -75,11 +75,13 @@ namespace BB3D
 	void Engine::Destroy()
 	{
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_Pipeline);
+		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineSkybox);
 
 		SDL_ReleaseGPUBuffer(m_Device, ico.vbo);
 		SDL_ReleaseGPUBuffer(m_Device, ico.ibo);
-		SDL_ReleaseGPUTexture(m_Device, m_TestTex);
-		SDL_ReleaseGPUTexture(m_Device, m_DepthTex);	
+		SDL_ReleaseGPUTexture(m_Device, m_IcoTex);
+		SDL_ReleaseGPUTexture(m_Device, m_DepthTex);
+		SDL_ReleaseGPUTexture(m_Device, m_Cubemap);
 		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
 
 		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
@@ -92,39 +94,55 @@ namespace BB3D
 
 	void Engine::Setup()
 	{
-		SDL_GPUShader* vert_shader = CreateShaderFromFile(m_Device, "Shaders/quad.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* frag_shader = CreateShaderFromFile(m_Device, "Shaders/quad.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 
-		m_TestTex = CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png");
+		// Setup for model pipeline
+
+		SDL_GPUShader* vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/quad.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/quad.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+
+		m_IcoTex = CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png");
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 		m_DepthTex = CreateDepthTestTexture(m_Device, 1280, 720);
-
-		//std::vector<Vertex> vertices = {
-		//	// XYZ RGB UV
-		//	{1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0},  // tr 0
-		//	{1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0}, // br 1
-		//	{-1.0, -1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0},// bl 2
-		//	{-1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0}  // tl 3
-		//};
-
-		//std::vector<Uint16> indices = {
-		//	3, 0, 2,
-		//	2, 0, 1
-		//};
-
 		ico = LoadMeshFromFile(m_Device, "assets/ico.obj");
 
 		m_Pipeline = CreateGraphicsPipelineForModels(
 			m_Device, 
 			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
-			vert_shader,
-			frag_shader
+			vert_shader_model,
+			frag_shader_model
 		);
 
-		SDL_ReleaseGPUShader(m_Device, vert_shader);
-		SDL_ReleaseGPUShader(m_Device, frag_shader);
+		SDL_ReleaseGPUShader(m_Device, vert_shader_model);
+		SDL_ReleaseGPUShader(m_Device, frag_shader_model);
+
+		// Setup for skybox pipeline
+
+		SDL_GPUShader* vert_shader_skybox = CreateShaderFromFile(m_Device, "Shaders/skybox.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* frag_shader_skybox = CreateShaderFromFile(m_Device, "Shaders/skybox.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+
+		m_Cubemap = CreateAndLoadCubeMapToGPU(
+			m_Device, 
+			{
+				"assets/skyboxes/ocean/ocean_right.png",
+				"assets/skyboxes/ocean/ocean_left.png",
+				"assets/skyboxes/ocean/ocean_up.png",
+				"assets/skyboxes/ocean/ocean_down.png",
+				"assets/skyboxes/ocean/ocean_front.png",
+				"assets/skyboxes/ocean/ocean_back.png"
+			}
+		);
+
+		m_PipelineSkybox = CreateGraphicsPipelineForSkybox(
+			m_Device, 
+			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			vert_shader_skybox,
+			frag_shader_skybox
+		);
+
+		SDL_ReleaseGPUShader(m_Device, vert_shader_skybox);
+		SDL_ReleaseGPUShader(m_Device, frag_shader_skybox);
 		
-		// Delete Me After
+		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
 	}
 
@@ -155,10 +173,16 @@ namespace BB3D
 			std::abort();
 		}
 
+		// Per Renderpass
+		//	Bind Pipeline
+		//	Bind Vertex Data
+		//	Bind Uniform
+		//	Draw Call
+
 		SDL_GPUColorTargetInfo color_target_info = {};
 		color_target_info.texture = swapchain_tex;
-		color_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
-		color_target_info.clear_color = {0.87, 0.85, 0.88, 1.0};
+		color_target_info.load_op = SDL_GPU_LOADOP_LOAD;
+		color_target_info.clear_color = {1.0, 0.0, 1.0, 1.0};
 		color_target_info.store_op = SDL_GPU_STOREOP_STORE;
 
 		SDL_GPUDepthStencilTargetInfo depth_stencil_target_info = {};
@@ -167,24 +191,36 @@ namespace BB3D
 		depth_stencil_target_info.clear_depth = 1;
 		depth_stencil_target_info.store_op = SDL_GPU_STOREOP_DONT_CARE;
 
-		SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(
+		SDL_GPURenderPass* render_pass_skybox = SDL_BeginGPURenderPass(
+			cmd_buff,
+			&color_target_info,
+			1,
+			nullptr
+		);
+
+		SDL_BindGPUGraphicsPipeline(render_pass_skybox, m_PipelineSkybox);
+		SDL_GPUTextureSamplerBinding skybox_bind = { m_Cubemap, m_Sampler };
+		SDL_BindGPUFragmentSamplers(render_pass_skybox, 0, &skybox_bind, 1);
+		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(proj), sizeof(proj));
+
+		SDL_DrawGPUPrimitives(render_pass_skybox, 36, 1, 0, 0);
+
+		SDL_EndGPURenderPass(render_pass_skybox);
+
+		SDL_GPURenderPass* render_pass_models = SDL_BeginGPURenderPass(
 			cmd_buff,
 			&color_target_info,
 			1,
 			&depth_stencil_target_info
 		);
 
-		// Bind Pipeline
-		// Bind Vertex Data
-		// Bind Uniform
-		// Draw Call
-		SDL_BindGPUGraphicsPipeline(render_pass, m_Pipeline);
+		SDL_BindGPUGraphicsPipeline(render_pass_models, m_Pipeline);
 		SDL_GPUBufferBinding binding = {ico.vbo, 0};
-		SDL_BindGPUVertexBuffers(render_pass, 0, &binding, 1);
+		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding, 1);
 		SDL_GPUBufferBinding ind_bind = { ico.ibo, 0 };
-		SDL_BindGPUIndexBuffer(render_pass, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-		SDL_GPUTextureSamplerBinding tex_bind = {m_TestTex, m_Sampler};
-		SDL_BindGPUFragmentSamplers(render_pass, 0, &tex_bind, 1);
+		SDL_BindGPUIndexBuffer(render_pass_models, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+		SDL_GPUTextureSamplerBinding tex_bind = {m_IcoTex, m_Sampler};
+		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &tex_bind, 1);
 
 		// Vertex Attributes - per vertex data
 		// Uniform Data - pew draw call
@@ -197,9 +233,9 @@ namespace BB3D
 		mvp = proj * model;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 
-		SDL_DrawGPUIndexedPrimitives(render_pass, ico.ind_count, 1, 0, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(render_pass_models, ico.ind_count, 1, 0, 0, 0);
 
-		SDL_EndGPURenderPass(render_pass);
+		SDL_EndGPURenderPass(render_pass_models);
 
 
 		if (!SDL_SubmitGPUCommandBuffer(cmd_buff))

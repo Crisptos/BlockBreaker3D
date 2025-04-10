@@ -42,10 +42,16 @@ namespace BB3D
 		SDL_Window* m_Window;
 		SDL_GPUDevice* m_Device;
 
+		// Model Pipeline
 		SDL_GPUGraphicsPipeline* m_Pipeline;
 		SDL_GPUTexture* m_DepthTex;
+		SDL_GPUTexture* m_IcoTex;
 
-		SDL_GPUTexture* m_TestTex;
+		// Skybox Pipeline
+		SDL_GPUGraphicsPipeline* m_PipelineSkybox;
+		SDL_GPUTexture* m_Cubemap;
+
+		// Global texture sampler
 		SDL_GPUSampler* m_Sampler;
 	};
 
@@ -85,7 +91,7 @@ namespace BB3D
 		int x, y, channels;
 	};
 
-	SDL_GPUTexture* CreateCubeMap(SDL_GPUDevice* device, std::array<std::string, 6> filepaths);
+	SDL_GPUTexture* CreateAndLoadCubeMapToGPU(SDL_GPUDevice* device, std::array<std::string, 6> filepaths);
 	SDL_GPUTexture* CreateDepthTestTexture(SDL_GPUDevice* device, int render_target_w, int render_target_h);
 	SDL_GPUTexture* CreateAndLoadTextureToGPU(SDL_GPUDevice* device, const char* filepath);
 	SDL_GPUSampler* CreateSampler(SDL_GPUDevice* device, SDL_GPUFilter texture_filter);
@@ -93,4 +99,5 @@ namespace BB3D
 	// ________________________________ GraphicsPipeline.cpp ________________________________
 	// Utility Functions
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForModels(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
+	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForSkybox(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
 }
