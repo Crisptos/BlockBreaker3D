@@ -102,8 +102,8 @@ namespace BB3D
 
 		// Setup for model pipeline
 
-		SDL_GPUShader* vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/quad.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/quad.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+		SDL_GPUShader* vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1, 0, 0);
 
 		m_IcoTex = CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png");
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
@@ -245,7 +245,15 @@ namespace BB3D
 		model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 		mvp = proj * m_StaticCamera.GetViewMatrix() * model;
 
-		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
+		glm::mat4 v_ubo[2] = {model, mvp};
+		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo[0]), sizeof(v_ubo));
+
+		float f_ubo[9] = { 
+			0.97f, 0.51f, 0.89f,
+			1.0f, 1.0f, 1.0f,
+			-0.2f, -1.0f, -0.3f
+		};
+		SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
 
 		SDL_DrawGPUIndexedPrimitives(render_pass_models, ico.ind_count, 1, 0, 0, 0);
 

@@ -11,7 +11,7 @@ namespace BB3D
 	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath)
 	{
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs);
+		const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to load model from %s: ASSIMP: %s\n", filepath, importer.GetErrorString());
@@ -30,9 +30,9 @@ namespace BB3D
 			new_vert.x = loaded_mesh->mVertices[i].x;
 			new_vert.y = loaded_mesh->mVertices[i].y;
 			new_vert.z = loaded_mesh->mVertices[i].z;
-			new_vert.r = 1.0f;
-			new_vert.g = 1.0f;
-			new_vert.b = 1.0f;
+			new_vert.nx = loaded_mesh->mNormals[i].x;
+			new_vert.ny = loaded_mesh->mNormals[i].y;
+			new_vert.nz = loaded_mesh->mNormals[i].z;
 			new_vert.u = loaded_mesh->mTextureCoords[0][i].x;
 			new_vert.v = loaded_mesh->mTextureCoords[0][i].y;
 

@@ -82,7 +82,7 @@ namespace BB3D
 
 	struct Vertex
 	{
-		float x, y, z, r, g, b, u, v;
+		float x, y, z, nx, ny, nz, u, v;
 	};
 
 	//     Utility Functions
