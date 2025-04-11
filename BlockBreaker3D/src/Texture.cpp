@@ -56,22 +56,22 @@ namespace BB3D
 			std::abort();
 		}
 
-		SDL_GPUCommandBuffer* cubemap_copy_cmd_buff = SDL_AcquireGPUCommandBuffer(device);
-		if (!cubemap_copy_cmd_buff)
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to acquire command buffer for copying to GPU texture: %s\n", SDL_GetError());
-			std::abort();
-		}
-
-		SDL_GPUCopyPass* cubemap_copy_pass = SDL_BeginGPUCopyPass(cubemap_copy_cmd_buff);
-		if (!cubemap_copy_pass)
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to begin copy pass: %s\n", SDL_GetError());
-			std::abort();
-		}
-
 		for (int i = 0; i < 6; i++)
 		{
+			SDL_GPUCommandBuffer* cubemap_copy_cmd_buff = SDL_AcquireGPUCommandBuffer(device);
+			if (!cubemap_copy_cmd_buff)
+			{
+				SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to acquire command buffer for copying to GPU texture: %s\n", SDL_GetError());
+				std::abort();
+			}
+
+			SDL_GPUCopyPass* cubemap_copy_pass = SDL_BeginGPUCopyPass(cubemap_copy_cmd_buff);
+			if (!cubemap_copy_pass)
+			{
+				SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to begin copy pass: %s\n", SDL_GetError());
+				std::abort();
+			}
+
 			void* cubemap_trans_ptr = SDL_MapGPUTransferBuffer(device, cubemap_trans_buff, false);
 			if (!cubemap_trans_ptr)
 			{
@@ -86,6 +86,8 @@ namespace BB3D
 			SDL_GPUTextureTransferInfo cubemap_trans_info = {};
 			cubemap_trans_info.offset = 0;
 			cubemap_trans_info.transfer_buffer = cubemap_trans_buff;
+			cubemap_trans_info.pixels_per_row = cube_faces_img_props.x;
+			//cubemap_trans_info.rows_per_layer = 1;
 			SDL_GPUTextureRegion cubemap_trans_region = {};
 			cubemap_trans_region.texture = new_cubemap_texture;
 			cubemap_trans_region.w = cube_faces_img_props.x;
@@ -93,13 +95,17 @@ namespace BB3D
 			cubemap_trans_region.d = 1;
 			cubemap_trans_region.layer = SDL_GPU_CUBEMAPFACE_POSITIVEX + i;
 			SDL_UploadToGPUTexture(cubemap_copy_pass, &cubemap_trans_info, &cubemap_trans_region, false);
-		}
 
-		SDL_EndGPUCopyPass(cubemap_copy_pass);
-		if (!SDL_SubmitGPUCommandBuffer(cubemap_copy_cmd_buff))
-		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU Texture: %s\n", SDL_GetError());
-			std::abort();
+			SDL_EndGPUCopyPass(cubemap_copy_pass);
+			SDL_GPUFence* upload_fence = SDL_SubmitGPUCommandBufferAndAcquireFence(cubemap_copy_cmd_buff);
+			if (!upload_fence)
+			{
+				SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU Texture and acquire fence: %s\n", SDL_GetError());
+				std::abort();
+			}
+
+			SDL_WaitForGPUFences(device, true, &upload_fence, 1);
+			SDL_ReleaseGPUFence(device, upload_fence);
 		}
 
 		// Free stbi image data

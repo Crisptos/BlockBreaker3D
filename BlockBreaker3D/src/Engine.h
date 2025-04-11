@@ -4,6 +4,8 @@
 #include <array>
 #include <string>
 
+#include "Camera.h"
+
 namespace BB3D
 {
 	class Engine
@@ -37,6 +39,8 @@ namespace BB3D
 			Uint64 current_frame;
 			float elapsed_time;
 		} m_Timer;
+
+		Camera m_StaticCamera;
 
 		// SDL Context
 		SDL_Window* m_Window;

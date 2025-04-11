@@ -15,6 +15,9 @@ namespace BB3D
 	float rot = 0.0f;
 	Mesh ico;
 
+	float last_x = 0.0f;
+	float last_y = 0.0f;
+
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -40,6 +43,8 @@ namespace BB3D
 
 		SDL_SetWindowPosition(m_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		SDL_SetWindowResizable(m_Window, false);
+		SDL_HideCursor();
+		SDL_SetWindowRelativeMouseMode(m_Window, true);
 
 		m_Device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
 
@@ -144,6 +149,10 @@ namespace BB3D
 		
 		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
+
+		m_StaticCamera.pos = glm::vec3(0.0f, 0.0f, 3.0f);
+		m_StaticCamera.front = glm::vec3(0.0f, 0.0f, -1.0f);
+		m_StaticCamera.up = glm::vec3(0.0f, 1.0f, 0.0f);
 	}
 
 	// ________________________________ Runtime ________________________________
@@ -201,7 +210,11 @@ namespace BB3D
 		SDL_BindGPUGraphicsPipeline(render_pass_skybox, m_PipelineSkybox);
 		SDL_GPUTextureSamplerBinding skybox_bind = { m_Cubemap, m_Sampler };
 		SDL_BindGPUFragmentSamplers(render_pass_skybox, 0, &skybox_bind, 1);
-		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(proj), sizeof(proj));
+
+		glm::mat4 vp_sky(1.0f);
+		glm::mat4 view_no_transform = glm::mat4(glm::mat3(m_StaticCamera.GetViewMatrix()));
+		vp_sky = proj * view_no_transform;
+		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(vp_sky), sizeof(vp_sky));
 
 		SDL_DrawGPUPrimitives(render_pass_skybox, 36, 1, 0, 0);
 
@@ -230,7 +243,8 @@ namespace BB3D
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(0.0f, -0.5f, -4.0f));
 		model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
-		mvp = proj * model;
+		mvp = proj * m_StaticCamera.GetViewMatrix() * model;
+
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 
 		SDL_DrawGPUIndexedPrimitives(render_pass_models, ico.ind_count, 1, 0, 0, 0);
@@ -247,6 +261,12 @@ namespace BB3D
 
 	void Engine::Input()
 	{
+		// TODO Clean up Camera Code
+
+		float mouse_sensitivity = 0.3f;
+		float relx = 0.0f;
+		float rely = 0.0f;
+
 		SDL_Event ev;
 		while (SDL_PollEvent(&ev))
 		{
@@ -256,8 +276,46 @@ namespace BB3D
 				{
 					m_IsRunning = false;
 				}
+
+				case SDL_EVENT_MOUSE_MOTION:
+				{
+					relx = ev.motion.xrel;
+					rely = ev.motion.yrel;
+				}
 			}
 		}
+
+		relx *= mouse_sensitivity;
+		rely *= mouse_sensitivity;
+
+		m_StaticCamera.yaw += relx;
+		m_StaticCamera.pitch -= rely;
+
+		if (m_StaticCamera.pitch > 89.0f)
+			m_StaticCamera.pitch = 89.0f;
+		if (m_StaticCamera.pitch < -89.0f)
+			m_StaticCamera.pitch = -89.0f;
+
+		glm::vec3 direction;
+		direction.x = cos(glm::radians(m_StaticCamera.yaw)) * cos(glm::radians(m_StaticCamera.pitch));
+		direction.y = sin(glm::radians(m_StaticCamera.pitch));
+		direction.z = sin(glm::radians(m_StaticCamera.yaw)) * cos(glm::radians(m_StaticCamera.pitch));
+		m_StaticCamera.front = glm::normalize(direction);
+
+		const bool* keys = SDL_GetKeyboardState(0);
+
+		const float camera_speed = 2.0f * m_Timer.elapsed_time;
+
+		if (keys[SDL_SCANCODE_W])
+			m_StaticCamera.pos += camera_speed * m_StaticCamera.front;
+		if(keys[SDL_SCANCODE_A])
+			m_StaticCamera.pos -= glm::normalize(glm::cross(m_StaticCamera.front, m_StaticCamera.up)) * camera_speed;
+		if(keys[SDL_SCANCODE_S])
+			m_StaticCamera.pos -= camera_speed * m_StaticCamera.front;
+		if(keys[SDL_SCANCODE_D])
+			m_StaticCamera.pos += glm::normalize(glm::cross(m_StaticCamera.front, m_StaticCamera.up)) * camera_speed;
+		if (keys[SDL_SCANCODE_ESCAPE])
+			m_IsRunning = false;
 	}
 
 	void Engine::UpdateDeltaTime()
