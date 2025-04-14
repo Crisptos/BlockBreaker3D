@@ -11,9 +11,12 @@ namespace BB3D
 	// ________________________________ Globals (TEST) ________________________________
 	glm::mat4 proj(1.0f);
 	glm::mat4 model(1.0f);
+	glm::mat4 model2(1.0f);
 	glm::mat4 mvp(1.0f);
-	float rot = 0.0f;
+	float height = -0.5f;
+	bool dir = true;
 	Mesh ico;
+	Mesh ball;
 
 	float last_x = 0.0f;
 	float last_y = 0.0f;
@@ -61,6 +64,10 @@ namespace BB3D
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to claim window for device: %s\n", SDL_GetError());
 			std::abort();
 		}
+
+		m_Timer.current_frame = SDL_GetTicks();
+		m_Timer.last_frame = m_Timer.current_frame;
+		m_Timer.elapsed_time = 0.0f;
 	}
 
 	void Engine::Run()
@@ -79,11 +86,14 @@ namespace BB3D
 
 	void Engine::Destroy()
 	{
-		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_Pipeline);
+		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsNoPhong);
+		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsPhong);
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineSkybox);
 
 		SDL_ReleaseGPUBuffer(m_Device, ico.vbo);
 		SDL_ReleaseGPUBuffer(m_Device, ico.ibo);
+		SDL_ReleaseGPUBuffer(m_Device, ball.vbo);
+		SDL_ReleaseGPUBuffer(m_Device, ball.ibo);
 		SDL_ReleaseGPUTexture(m_Device, m_IcoTex);
 		SDL_ReleaseGPUTexture(m_Device, m_DepthTex);
 		SDL_ReleaseGPUTexture(m_Device, m_Cubemap);
@@ -100,25 +110,37 @@ namespace BB3D
 	void Engine::Setup()
 	{
 
-		// Setup for model pipeline
+		// Setup for model pipeline phong/no phong
 
-		SDL_GPUShader* vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1, 0, 0);
+		SDL_GPUShader* phong_vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* phong_frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1, 0, 0);
+		SDL_GPUShader* no_phong_vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-no-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* no_phong_frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-no-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 
 		m_IcoTex = CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png");
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 		m_DepthTex = CreateDepthTestTexture(m_Device, 1280, 720);
 		ico = LoadMeshFromFile(m_Device, "assets/ico.obj");
+		ball = LoadMeshFromFile(m_Device, "assets/sphere.obj");
 
-		m_Pipeline = CreateGraphicsPipelineForModels(
+		m_PipelineModelsPhong = CreateGraphicsPipelineForModels(
 			m_Device, 
 			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
-			vert_shader_model,
-			frag_shader_model
+			phong_vert_shader_model,
+			phong_frag_shader_model
 		);
 
-		SDL_ReleaseGPUShader(m_Device, vert_shader_model);
-		SDL_ReleaseGPUShader(m_Device, frag_shader_model);
+		m_PipelineModelsNoPhong = CreateGraphicsPipelineForModels(
+			m_Device,
+			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			no_phong_vert_shader_model,
+			no_phong_frag_shader_model
+		);
+
+		SDL_ReleaseGPUShader(m_Device, phong_vert_shader_model);
+		SDL_ReleaseGPUShader(m_Device, phong_frag_shader_model);
+		SDL_ReleaseGPUShader(m_Device, no_phong_frag_shader_model);
+		SDL_ReleaseGPUShader(m_Device, no_phong_vert_shader_model);
 
 		// Setup for skybox pipeline
 
@@ -128,12 +150,12 @@ namespace BB3D
 		m_Cubemap = CreateAndLoadCubeMapToGPU(
 			m_Device, 
 			{
-				"assets/skyboxes/ocean/ocean_right.png",
-				"assets/skyboxes/ocean/ocean_left.png",
-				"assets/skyboxes/ocean/ocean_up.png",
-				"assets/skyboxes/ocean/ocean_down.png",
-				"assets/skyboxes/ocean/ocean_front.png",
-				"assets/skyboxes/ocean/ocean_back.png"
+				"assets/skyboxes/space/space_right.png",
+				"assets/skyboxes/space/space_left.png",
+				"assets/skyboxes/space/space_up.png",
+				"assets/skyboxes/space/space_down.png",
+				"assets/skyboxes/space/space_front.png",
+				"assets/skyboxes/space/space_back.png"
 			}
 		);
 
@@ -227,35 +249,47 @@ namespace BB3D
 			&depth_stencil_target_info
 		);
 
-		SDL_BindGPUGraphicsPipeline(render_pass_models, m_Pipeline);
-		SDL_GPUBufferBinding binding = {ico.vbo, 0};
+		SDL_GPUBufferBinding binding = {ball.vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding, 1);
-		SDL_GPUBufferBinding ind_bind = { ico.ibo, 0 };
+		SDL_GPUBufferBinding ind_bind = { ball.ibo, 0 };
 		SDL_BindGPUIndexBuffer(render_pass_models, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 		SDL_GPUTextureSamplerBinding tex_bind = {m_IcoTex, m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &tex_bind, 1);
 
 		// Vertex Attributes - per vertex data
 		// Uniform Data - pew draw call
-		rot += 90.0f * m_Timer.elapsed_time;
-		if (rot > 720.0f) rot = 0.0f;
+		// TODO - Clean this up
+		// Draw the light source icosphere first then the phong shaded icosphere with a different model transform
+		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsNoPhong);
+		model2 = glm::mat4(1.0f);
+		model2 = glm::scale(model2, glm::vec3(0.5, 0.5, 0.5));
+		model2 = glm::translate(model2, glm::vec3(-2.0f, 1.0f, -2.0f));
+		mvp = proj * m_StaticCamera.GetViewMatrix() * model2;
+		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
+		SDL_DrawGPUIndexedPrimitives(render_pass_models, ball.ind_count, 1, 0, 0, 0);
 
+		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsPhong);
+		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
+		glm::vec4 light_pos = origin * model2;
+
+		if (dir) height += 0.3f * m_Timer.elapsed_time;
+		else height -= 0.3f * m_Timer.elapsed_time;
+		if (height > 1.0f) dir = false;
+		if (height < -1.0f) dir = true;
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, -0.5f, -4.0f));
-		model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f, height, -4.0f));
+		//model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 		mvp = proj * m_StaticCamera.GetViewMatrix() * model;
-
-		glm::mat4 v_ubo[2] = {model, mvp};
-		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo[0]), sizeof(v_ubo));
-
-		float f_ubo[9] = { 
-			0.97f, 0.51f, 0.89f,
-			1.0f, 1.0f, 1.0f,
-			-0.2f, -1.0f, -0.3f
+		glm::mat4 v_ubo1[2] = {model, mvp};
+		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo1[0]), sizeof(v_ubo1));
+		float f_ubo[16] = { 
+			0.97f, 0.64f, 0.12f, 0.0f,
+			1.0f, 1.0f, 1.0f, 0.0f,
+			light_pos.x, light_pos.y, light_pos.z, 0.0f,
+			m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
 		};
 		SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
-
-		SDL_DrawGPUIndexedPrimitives(render_pass_models, ico.ind_count, 1, 0, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(render_pass_models, ball.ind_count, 1, 0, 0, 0);
 
 		SDL_EndGPURenderPass(render_pass_models);
 
@@ -328,12 +362,12 @@ namespace BB3D
 
 	void Engine::UpdateDeltaTime()
 	{
-		const float FRAME_TARGET_TIME = 1000.0f / 60.0f;
+		const float FRAME_TARGET_TIME = 1.0f / 60.0f;
 
 		m_Timer.last_frame = m_Timer.current_frame;
 		m_Timer.current_frame = SDL_GetTicks();
 		m_Timer.elapsed_time = (m_Timer.current_frame - m_Timer.last_frame) / 1000.0f;
 
-		if (m_Timer.elapsed_time < FRAME_TARGET_TIME) SDL_Delay(FRAME_TARGET_TIME - m_Timer.elapsed_time);
+		if (m_Timer.elapsed_time < FRAME_TARGET_TIME) SDL_Delay((FRAME_TARGET_TIME - m_Timer.elapsed_time) * 1000.0f);
 	}
 }

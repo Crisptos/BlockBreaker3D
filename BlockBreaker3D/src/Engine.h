@@ -47,7 +47,8 @@ namespace BB3D
 		SDL_GPUDevice* m_Device;
 
 		// Model Pipeline
-		SDL_GPUGraphicsPipeline* m_Pipeline;
+		SDL_GPUGraphicsPipeline* m_PipelineModelsPhong;
+		SDL_GPUGraphicsPipeline* m_PipelineModelsNoPhong;
 		SDL_GPUTexture* m_DepthTex;
 		SDL_GPUTexture* m_IcoTex;
 
