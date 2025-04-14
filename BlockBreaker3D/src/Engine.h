@@ -3,7 +3,6 @@
 #include <vector>
 #include <array>
 #include <string>
-
 #include "Camera.h"
 
 namespace BB3D
