@@ -79,7 +79,10 @@ namespace BB3D
 		glm::vec3 velocity;
 
 		void UpdateTransform();
+		void Draw(SDL_GPURenderPass* render_pass, SDL_GPUBufferBinding vbo_bind, SDL_GPUBufferBinding ibo_bind);
 	};
+
+	// ________________________________ Main Engine Class ________________________________
 
 	class Engine
 	{
@@ -94,6 +97,7 @@ namespace BB3D
 		void Setup();
 
 		// Runtime
+		void Update();
 		void Input();
 		void Render();
 
@@ -119,18 +123,12 @@ namespace BB3D
 		SDL_Window* m_Window;
 		SDL_GPUDevice* m_Device;
 
-		//	Model Pipeline
+		//	Renderer State
+		SDL_GPUGraphicsPipeline* m_PipelineSkybox;
 		SDL_GPUGraphicsPipeline* m_PipelineModelsPhong;
 		SDL_GPUGraphicsPipeline* m_PipelineModelsNoPhong;
 		std::vector<Mesh> meshes;
 		std::vector<SDL_GPUTexture*> textures;
-
-		SDL_GPUTexture* m_DepthTex;
-		SDL_GPUTexture* m_IcoTex;
-
-		//	Skybox Pipeline
-		SDL_GPUGraphicsPipeline* m_PipelineSkybox;
-		SDL_GPUTexture* m_Cubemap;
 
 		//	Global texture sampler
 		SDL_GPUSampler* m_Sampler;

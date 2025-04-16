@@ -15,9 +15,6 @@ namespace BB3D
 	glm::mat4 mvp(1.0f);
 	float height = -0.5f;
 	bool dir = true;
-	Mesh ico;
-	Mesh ball;
-	Mesh floor;
 
 	float last_x = 0.0f;
 	float last_y = 0.0f;
@@ -78,6 +75,7 @@ namespace BB3D
 		{
 			if (!m_IsIdle)
 			{
+				Update();
 				Render();
 				Input();
 				UpdateDeltaTime();
@@ -87,19 +85,22 @@ namespace BB3D
 
 	void Engine::Destroy()
 	{
+		// Dispose of all textures and meshes
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsNoPhong);
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsPhong);
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineSkybox);
 
-		SDL_ReleaseGPUBuffer(m_Device, ico.vbo);
-		SDL_ReleaseGPUBuffer(m_Device, ico.ibo);
-		SDL_ReleaseGPUBuffer(m_Device, ball.vbo);
-		SDL_ReleaseGPUBuffer(m_Device, ball.ibo);
-		SDL_ReleaseGPUBuffer(m_Device, floor.vbo);
-		SDL_ReleaseGPUBuffer(m_Device, floor.ibo);
-		SDL_ReleaseGPUTexture(m_Device, m_IcoTex);
-		SDL_ReleaseGPUTexture(m_Device, m_DepthTex);
-		SDL_ReleaseGPUTexture(m_Device, m_Cubemap);
+		for (Mesh disposed_mesh : meshes)
+		{
+			SDL_ReleaseGPUBuffer(m_Device, disposed_mesh.vbo);
+			SDL_ReleaseGPUBuffer(m_Device, disposed_mesh.ibo);
+		}
+
+		for (SDL_GPUTexture* disposed_texture : textures)
+		{
+			SDL_ReleaseGPUTexture(m_Device, disposed_texture);
+		}
+
 		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
 
 		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
@@ -113,19 +114,39 @@ namespace BB3D
 	void Engine::Setup()
 	{
 
-		// Setup for model pipeline phong/no phong
+		// Allocate storage
+		game_entities.reserve(16);
+		meshes.reserve(16);
+		textures.reserve(16);
 
+		// Load Textures
+		// DEPTH TEXTURE IS ALWAYS IDX 0, SKYBOX TEXTURE IS ALWAYS IDX 1
+		textures.push_back(CreateDepthTestTexture(m_Device, 1280, 720));
+		textures.push_back(CreateAndLoadCubeMapToGPU(
+			m_Device,
+			{
+				"assets/skyboxes/space/space_right.png",
+				"assets/skyboxes/space/space_left.png",
+				"assets/skyboxes/space/space_up.png",
+				"assets/skyboxes/space/space_down.png",
+				"assets/skyboxes/space/space_front.png",
+				"assets/skyboxes/space/space_back.png"
+			}
+		));
+		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png"));
+
+		// Load Meshes
+		meshes.push_back(LoadMeshFromFile(m_Device, "assets/ico.obj"));
+		meshes.push_back(LoadMeshFromFile(m_Device, "assets/quad.obj"));
+		meshes.push_back(LoadMeshFromFile(m_Device, "assets/sphere.obj"));
+
+		// Load Shaders and Setup Pipelines
 		SDL_GPUShader* phong_vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
 		SDL_GPUShader* phong_frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1, 0, 0);
 		SDL_GPUShader* no_phong_vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-no-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
 		SDL_GPUShader* no_phong_frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-no-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
-
-		m_IcoTex = CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png");
-		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
-		m_DepthTex = CreateDepthTestTexture(m_Device, 1280, 720);
-		ico = LoadMeshFromFile(m_Device, "assets/ico.obj");
-		ball = LoadMeshFromFile(m_Device, "assets/sphere.obj");
-		floor = LoadMeshFromFile(m_Device, "assets/quad.obj");
+		SDL_GPUShader* skybox_vert_shader = CreateShaderFromFile(m_Device, "Shaders/skybox.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* skybox_frag_shader = CreateShaderFromFile(m_Device, "Shaders/skybox.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 
 		m_PipelineModelsPhong = CreateGraphicsPipelineForModels(
 			m_Device, 
@@ -141,37 +162,24 @@ namespace BB3D
 			no_phong_frag_shader_model
 		);
 
+		m_PipelineSkybox = CreateGraphicsPipelineForSkybox(
+			m_Device,
+			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			skybox_vert_shader,
+			skybox_frag_shader
+		);
+
 		SDL_ReleaseGPUShader(m_Device, phong_vert_shader_model);
 		SDL_ReleaseGPUShader(m_Device, phong_frag_shader_model);
 		SDL_ReleaseGPUShader(m_Device, no_phong_frag_shader_model);
 		SDL_ReleaseGPUShader(m_Device, no_phong_vert_shader_model);
+		SDL_ReleaseGPUShader(m_Device, skybox_vert_shader);
+		SDL_ReleaseGPUShader(m_Device, skybox_frag_shader);
 
-		// Setup for skybox pipeline
+		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 
-		SDL_GPUShader* vert_shader_skybox = CreateShaderFromFile(m_Device, "Shaders/skybox.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* frag_shader_skybox = CreateShaderFromFile(m_Device, "Shaders/skybox.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
-
-		m_Cubemap = CreateAndLoadCubeMapToGPU(
-			m_Device, 
-			{
-				"assets/skyboxes/space/space_right.png",
-				"assets/skyboxes/space/space_left.png",
-				"assets/skyboxes/space/space_up.png",
-				"assets/skyboxes/space/space_down.png",
-				"assets/skyboxes/space/space_front.png",
-				"assets/skyboxes/space/space_back.png"
-			}
-		);
-
-		m_PipelineSkybox = CreateGraphicsPipelineForSkybox(
-			m_Device, 
-			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
-			vert_shader_skybox,
-			frag_shader_skybox
-		);
-
-		SDL_ReleaseGPUShader(m_Device, vert_shader_skybox);
-		SDL_ReleaseGPUShader(m_Device, frag_shader_skybox);
+		// Entities TODO
+		//game_entities.push_back({meshes[]});
 		
 		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
@@ -181,6 +189,11 @@ namespace BB3D
 		m_StaticCamera.up = glm::vec3(0.0f, 1.0f, 0.0f);
 		m_StaticCamera.pitch = 0.0f;
 		m_StaticCamera.yaw = -80.0f;
+	}
+
+	void Engine::Update()
+	{
+
 	}
 
 	// ________________________________ Runtime ________________________________
@@ -223,7 +236,7 @@ namespace BB3D
 		color_target_info.store_op = SDL_GPU_STOREOP_STORE;
 
 		SDL_GPUDepthStencilTargetInfo depth_stencil_target_info = {};
-		depth_stencil_target_info.texture = m_DepthTex;
+		depth_stencil_target_info.texture = textures[DEPTH_TEXTURE_IDX];
 		depth_stencil_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
 		depth_stencil_target_info.clear_depth = 1;
 		depth_stencil_target_info.store_op = SDL_GPU_STOREOP_DONT_CARE;
@@ -236,7 +249,7 @@ namespace BB3D
 		);
 
 		SDL_BindGPUGraphicsPipeline(render_pass_skybox, m_PipelineSkybox);
-		SDL_GPUTextureSamplerBinding skybox_bind = { m_Cubemap, m_Sampler };
+		SDL_GPUTextureSamplerBinding skybox_bind = { textures[SKYBOX_TEXTURE_IDX], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_skybox, 0, &skybox_bind, 1);
 
 		glm::mat4 vp_sky(1.0f);
@@ -255,11 +268,11 @@ namespace BB3D
 			&depth_stencil_target_info
 		);
 
-		SDL_GPUBufferBinding binding = {ball.vbo, 0};
+		SDL_GPUBufferBinding binding = { meshes[2].vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding, 1);
-		SDL_GPUBufferBinding ind_bind = { ball.ibo, 0 };
+		SDL_GPUBufferBinding ind_bind = { meshes[2].ibo, 0 };
 		SDL_BindGPUIndexBuffer(render_pass_models, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-		SDL_GPUTextureSamplerBinding tex_bind = {m_IcoTex, m_Sampler};
+		SDL_GPUTextureSamplerBinding tex_bind = {textures[2], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &tex_bind, 1);
 
 		// Vertex Attributes - per vertex data
@@ -272,7 +285,7 @@ namespace BB3D
 		model2 = glm::translate(model2, glm::vec3(-2.0f, 1.0f, -2.0f));
 		mvp = proj * m_StaticCamera.GetViewMatrix() * model2;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
-		SDL_DrawGPUIndexedPrimitives(render_pass_models, ball.ind_count, 1, 0, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[2].ind_count, 1, 0, 0, 0);
 
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsPhong);
 		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -290,11 +303,11 @@ namespace BB3D
 			m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
 		};
 		SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
-		SDL_DrawGPUIndexedPrimitives(render_pass_models, ball.ind_count, 1, 0, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[2].ind_count, 1, 0, 0, 0);
 
-		SDL_GPUBufferBinding binding1 = { floor.vbo, 0 };
+		SDL_GPUBufferBinding binding1 = { meshes[1].vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding1, 1);
-		SDL_GPUBufferBinding ind_bind1 = { floor.ibo, 0 };
+		SDL_GPUBufferBinding ind_bind1 = { meshes[1].ibo, 0};
 		SDL_BindGPUIndexBuffer(render_pass_models, &ind_bind1, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 
 		model = glm::mat4(1.0f);
@@ -310,7 +323,7 @@ namespace BB3D
 			m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
 		};
 		SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo3, sizeof(f_ubo3));
-		SDL_DrawGPUIndexedPrimitives(render_pass_models, floor.ind_count, 1, 0, 0, 0);
+		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[1].ind_count, 1, 0, 0, 0);
 
 		SDL_EndGPURenderPass(render_pass_models);
 

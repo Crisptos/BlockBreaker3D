@@ -15,4 +15,12 @@ namespace BB3D
 
 		transform = glm::scale(transform, scale);
 	}
+
+	void Entity::Draw(SDL_GPURenderPass* render_pass, SDL_GPUBufferBinding vbo_bind, SDL_GPUBufferBinding ibo_bind)
+	{
+		SDL_BindGPUVertexBuffers(render_pass, 0, &vbo_bind, 1);
+		SDL_BindGPUIndexBuffer(render_pass, &ibo_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+
+		SDL_DrawGPUIndexedPrimitives(render_pass, mesh.ind_count, 1, 0, 0, 0);
+	}
 }
