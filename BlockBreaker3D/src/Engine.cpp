@@ -17,6 +17,7 @@ namespace BB3D
 	bool dir = true;
 	Mesh ico;
 	Mesh ball;
+	Mesh floor;
 
 	float last_x = 0.0f;
 	float last_y = 0.0f;
@@ -94,6 +95,8 @@ namespace BB3D
 		SDL_ReleaseGPUBuffer(m_Device, ico.ibo);
 		SDL_ReleaseGPUBuffer(m_Device, ball.vbo);
 		SDL_ReleaseGPUBuffer(m_Device, ball.ibo);
+		SDL_ReleaseGPUBuffer(m_Device, floor.vbo);
+		SDL_ReleaseGPUBuffer(m_Device, floor.ibo);
 		SDL_ReleaseGPUTexture(m_Device, m_IcoTex);
 		SDL_ReleaseGPUTexture(m_Device, m_DepthTex);
 		SDL_ReleaseGPUTexture(m_Device, m_Cubemap);
@@ -122,6 +125,7 @@ namespace BB3D
 		m_DepthTex = CreateDepthTestTexture(m_Device, 1280, 720);
 		ico = LoadMeshFromFile(m_Device, "assets/ico.obj");
 		ball = LoadMeshFromFile(m_Device, "assets/sphere.obj");
+		floor = LoadMeshFromFile(m_Device, "assets/quad.obj");
 
 		m_PipelineModelsPhong = CreateGraphicsPipelineForModels(
 			m_Device, 
@@ -172,9 +176,11 @@ namespace BB3D
 		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
 
-		m_StaticCamera.pos = glm::vec3(0.0f, 0.0f, 3.0f);
+		m_StaticCamera.pos = glm::vec3(0.0f, 0.0f, 4.0f);
 		m_StaticCamera.front = glm::vec3(0.0f, 0.0f, -1.0f);
 		m_StaticCamera.up = glm::vec3(0.0f, 1.0f, 0.0f);
+		m_StaticCamera.pitch = 0.0f;
+		m_StaticCamera.yaw = -80.0f;
 	}
 
 	// ________________________________ Runtime ________________________________
@@ -272,13 +278,8 @@ namespace BB3D
 		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
 		glm::vec4 light_pos = origin * model2;
 
-		if (dir) height += 0.3f * m_Timer.elapsed_time;
-		else height -= 0.3f * m_Timer.elapsed_time;
-		if (height > 1.0f) dir = false;
-		if (height < -1.0f) dir = true;
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(0.0f, height, -4.0f));
-		//model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 		mvp = proj * m_StaticCamera.GetViewMatrix() * model;
 		glm::mat4 v_ubo1[2] = {model, mvp};
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo1[0]), sizeof(v_ubo1));
@@ -290,6 +291,26 @@ namespace BB3D
 		};
 		SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
 		SDL_DrawGPUIndexedPrimitives(render_pass_models, ball.ind_count, 1, 0, 0, 0);
+
+		SDL_GPUBufferBinding binding1 = { floor.vbo, 0 };
+		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding1, 1);
+		SDL_GPUBufferBinding ind_bind1 = { floor.ibo, 0 };
+		SDL_BindGPUIndexBuffer(render_pass_models, &ind_bind1, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+
+		model = glm::mat4(1.0f);
+		model = glm::scale(model, glm::vec3(5.0f, 1.0f, 5.0f));
+		model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
+		mvp = proj * m_StaticCamera.GetViewMatrix() * model;
+		glm::mat4 v_ubo3[2] = { model, mvp };
+		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo3[0]), sizeof(v_ubo3));
+		float f_ubo3[16] = {
+			0.27f, 0.24f, 0.82f, 0.0f,
+			1.0f, 1.0f, 1.0f, 0.0f,
+			light_pos.x, light_pos.y, light_pos.z, 0.0f,
+			m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
+		};
+		SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo3, sizeof(f_ubo3));
+		SDL_DrawGPUIndexedPrimitives(render_pass_models, floor.ind_count, 1, 0, 0, 0);
 
 		SDL_EndGPURenderPass(render_pass_models);
 

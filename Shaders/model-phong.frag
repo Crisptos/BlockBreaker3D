@@ -19,12 +19,12 @@ layout(set=2, binding=0) uniform sampler2D tex_sampler;
 void main()
 {
 	const float ambient_strength = 0.2;
-	vec3 ambient = ambient_strength * incoming_light_color;
+	vec3 ambient = incoming_light_color * ambient_strength * texture(tex_sampler, frag_uv).rgb;
 
 	vec3 norm = normalize(normal);
 	vec3 light_dir = normalize(light_pos - frag_pos);
 	float diff = max(dot(norm, light_dir), 0.0);
-	vec3 diffuse = diff * incoming_light_color;
+	vec3 diffuse = incoming_light_color * diff * texture(tex_sampler, frag_uv).rgb;
 
 	float specular_strength = 0.5;
 	vec3 view_dir = normalize(view_pos - frag_pos);
@@ -32,7 +32,7 @@ void main()
 	float spec = pow(max(dot(view_dir, reflect_dir), 0.0), 32);
 	vec3 specular = specular_strength * spec * incoming_light_color;
 
-	vec3 final_result = (ambient + diffuse + specular) * object_color_base;
+	vec3 final_result = ambient + diffuse + specular;
 	final_color = vec4(final_result, 1.0);
 	//final_color = vec4(normalize(normal) * 0.5 + 0.5, 1.0);
 	//final_color = vec4(normalize(frag_pos) * 0.5 + 0.5, 1.0);

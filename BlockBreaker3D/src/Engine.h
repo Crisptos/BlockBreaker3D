@@ -1,66 +1,19 @@
 #pragma once
 #include <SDL3/SDL.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include <vector>
 #include <array>
 #include <string>
 #include "Camera.h"
 
+#define DEPTH_TEXTURE_IDX 0
+#define SKYBOX_TEXTURE_IDX 1
+
 namespace BB3D
 {
-	class Engine
-	{
-	public:
-		// Lifetime
-		void Init();
-		void Run();
-		void Destroy();
-
-	private:
-		// Setup
-		void Setup();
-
-		// Runtime
-		void Input();
-		void Render();
-
-		// Utility
-		void UpdateDeltaTime();
-		
-
-	private:
-
-		// State
-		bool m_IsRunning = true;
-		bool m_IsIdle = false;
-		struct Timer
-		{
-			Uint64 last_frame;
-			Uint64 current_frame;
-			float elapsed_time;
-		} m_Timer;
-
-		Camera m_StaticCamera;
-
-		// SDL Context
-		SDL_Window* m_Window;
-		SDL_GPUDevice* m_Device;
-
-		// Model Pipeline
-		SDL_GPUGraphicsPipeline* m_PipelineModelsPhong;
-		SDL_GPUGraphicsPipeline* m_PipelineModelsNoPhong;
-		SDL_GPUTexture* m_DepthTex;
-		SDL_GPUTexture* m_IcoTex;
-
-		// Skybox Pipeline
-		SDL_GPUGraphicsPipeline* m_PipelineSkybox;
-		SDL_GPUTexture* m_Cubemap;
-
-		// Global texture sampler
-		SDL_GPUSampler* m_Sampler;
-	};
-
-	// ________________________________ Shader.cpp ________________________________
-	//     Utility Functions
+	// OUTSIDE SOURCE FILES
+// ________________________________ Shader.cpp ________________________________
 	SDL_GPUShader* CreateShaderFromFile(
 		SDL_GPUDevice* device,
 		const char* file_path,
@@ -85,7 +38,6 @@ namespace BB3D
 		float x, y, z, nx, ny, nz, u, v;
 	};
 
-	//     Utility Functions
 	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath);
 	Mesh CreateMesh(SDL_GPUDevice* device, std::vector<Vertex> vertices, std::vector<Uint16> indices);
 
@@ -101,7 +53,86 @@ namespace BB3D
 	SDL_GPUSampler* CreateSampler(SDL_GPUDevice* device, SDL_GPUFilter texture_filter);
 
 	// ________________________________ GraphicsPipeline.cpp ________________________________
-	// Utility Functions
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForModels(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForSkybox(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
+
+	// ________________________________ Fonts.cpp ________________________________
+	struct Glyph {
+		unsigned int texture;
+		glm::ivec2   size;
+		glm::ivec2   bearing;
+		unsigned int advance;
+	};
+
+	// ________________________________ Entity.cpp ________________________________
+	struct Entity
+	{
+		Mesh mesh;
+		SDL_GPUTexture* texture;
+
+		glm::mat4 transform;
+
+		glm::vec3 position;
+		glm::vec3 rotation;
+		glm::vec3 scale;
+
+		glm::vec3 velocity;
+
+		void UpdateTransform();
+	};
+
+	class Engine
+	{
+	public:
+		// Lifetime
+		void Init();
+		void Run();
+		void Destroy();
+
+	private:
+		// Setup
+		void Setup();
+
+		// Runtime
+		void Input();
+		void Render();
+
+		// Utility
+		void UpdateDeltaTime();
+		
+	private:
+
+		// State
+		bool m_IsRunning = true;
+		bool m_IsIdle = false;
+		struct Timer
+		{
+			Uint64 last_frame;
+			Uint64 current_frame;
+			float elapsed_time;
+		} m_Timer;
+
+		Camera m_StaticCamera;
+		std::vector<Entity> game_entities;
+
+		// SDL Context
+		SDL_Window* m_Window;
+		SDL_GPUDevice* m_Device;
+
+		//	Model Pipeline
+		SDL_GPUGraphicsPipeline* m_PipelineModelsPhong;
+		SDL_GPUGraphicsPipeline* m_PipelineModelsNoPhong;
+		std::vector<Mesh> meshes;
+		std::vector<SDL_GPUTexture*> textures;
+
+		SDL_GPUTexture* m_DepthTex;
+		SDL_GPUTexture* m_IcoTex;
+
+		//	Skybox Pipeline
+		SDL_GPUGraphicsPipeline* m_PipelineSkybox;
+		SDL_GPUTexture* m_Cubemap;
+
+		//	Global texture sampler
+		SDL_GPUSampler* m_Sampler;
+	};
 }
