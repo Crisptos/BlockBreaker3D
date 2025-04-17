@@ -58,11 +58,14 @@ namespace BB3D
 
 	// ________________________________ Fonts.cpp ________________________________
 	struct Glyph {
-		unsigned int texture;
+		SDL_GPUTexture* texture;
 		glm::ivec2   size;
 		glm::ivec2   bearing;
 		unsigned int advance;
 	};
+
+	void InitFreeType();
+	void DestroyFreeType();
 
 	// ________________________________ Entity.cpp ________________________________
 	struct Entity

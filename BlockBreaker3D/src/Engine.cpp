@@ -13,8 +13,6 @@ namespace BB3D
 	glm::mat4 model(1.0f);
 	glm::mat4 model2(1.0f);
 	glm::mat4 mvp(1.0f);
-	float height = -0.5f;
-	bool dir = true;
 
 	float last_x = 0.0f;
 	float last_y = 0.0f;
@@ -63,6 +61,8 @@ namespace BB3D
 			std::abort();
 		}
 
+		InitFreeType();
+
 		m_Timer.current_frame = SDL_GetTicks();
 		m_Timer.last_frame = m_Timer.current_frame;
 		m_Timer.elapsed_time = 0.0f;
@@ -85,6 +85,9 @@ namespace BB3D
 
 	void Engine::Destroy()
 	{
+		// Freetype and Fonts
+		DestroyFreeType();
+
 		// Dispose of all textures and meshes
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsNoPhong);
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsPhong);
@@ -134,6 +137,7 @@ namespace BB3D
 			}
 		));
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_03.png"));
 
 		// Load Meshes
 		meshes.push_back(LoadMeshFromFile(m_Device, "assets/ico.obj"));
@@ -259,7 +263,7 @@ namespace BB3D
 		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding, 1);
 		SDL_GPUBufferBinding ind_bind = { meshes[2].ibo, 0 };
 		SDL_BindGPUIndexBuffer(render_pass_models, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-		SDL_GPUTextureSamplerBinding tex_bind = {textures[2], m_Sampler};
+		SDL_GPUTextureSamplerBinding tex_bind = {textures[3], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &tex_bind, 1);
 
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsNoPhong);
