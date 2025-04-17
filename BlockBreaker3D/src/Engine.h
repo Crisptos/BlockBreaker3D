@@ -35,7 +35,12 @@ namespace BB3D
 
 	struct Vertex
 	{
-		float x, y, z, nx, ny, nz, u, v;
+		float v[8];
+
+		float& operator[](size_t i)
+		{
+			return v[i];
+		}
 	};
 
 	Mesh LoadMeshFromFile(SDL_GPUDevice* device, const char* filepath);
@@ -93,14 +98,16 @@ namespace BB3D
 		SDL_GPUTexture* texture;
 
 		glm::vec2 pos;
-		glm::vec3 color;
+		glm::vec4 color;
+		int width, height;
 	};
 
 	struct UI
 	{
-		unsigned int count;
+		unsigned int frame_offset; // 1 vertex + 32 bytes
 
 		void PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element& elem);
+		void FlushUIBuff(SDL_GPUDevice* device);
 	};
 
 	SDL_GPUBuffer* CreateUILayerBuffer(SDL_GPUDevice* device);
@@ -141,6 +148,7 @@ namespace BB3D
 
 		Camera m_StaticCamera;
 		std::vector<Entity> game_entities;
+		UI ui_layer;
 
 		// SDL Context
 		SDL_Window* m_Window;

@@ -27,15 +27,14 @@ namespace BB3D
 		{
 			Vertex new_vert = {};
 
-			new_vert.x = loaded_mesh->mVertices[i].x;
-			new_vert.y = loaded_mesh->mVertices[i].y;
-			new_vert.z = loaded_mesh->mVertices[i].z;
-			new_vert.nx = loaded_mesh->mNormals[i].x;
-			new_vert.ny = loaded_mesh->mNormals[i].y;
-			new_vert.nz = loaded_mesh->mNormals[i].z;
-			new_vert.u = loaded_mesh->mTextureCoords[0][i].x;
-			new_vert.v = loaded_mesh->mTextureCoords[0][i].y;
-
+			new_vert[0] = loaded_mesh->mVertices[i].x;
+			new_vert[1] = loaded_mesh->mVertices[i].y;
+			new_vert[2] = loaded_mesh->mVertices[i].z;
+			new_vert[3] = loaded_mesh->mNormals[i].x;
+			new_vert[4] = loaded_mesh->mNormals[i].y;
+			new_vert[5] = loaded_mesh->mNormals[i].z;
+			new_vert[6] = loaded_mesh->mTextureCoords[0][i].x;
+			new_vert[7] = loaded_mesh->mTextureCoords[0][i].y;
 
 			loaded_vertices.push_back(new_vert);
 		}
@@ -57,13 +56,6 @@ namespace BB3D
 
 	Mesh CreateMesh(SDL_GPUDevice* device, std::vector<Vertex> vertices, std::vector<Uint16> indices)
 	{
-		// upload vertex data to vbo
-		//	- create transfer buffer
-		//	- map transfer buffer mem and copy from cpu
-		//	- begin copy pass
-		//	- invoke upload command
-		//	- end copy pass and submit
-
 		Mesh new_mesh = {};
 
 		Uint32 vbo_size = sizeof(Vertex) * vertices.size();

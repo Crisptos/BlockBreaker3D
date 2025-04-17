@@ -101,6 +101,8 @@ namespace BB3D
 			SDL_ReleaseGPUBuffer(m_Device, disposed_mesh.ibo);
 		}
 
+		SDL_ReleaseGPUBuffer(m_Device, ui_buff);
+
 		for (SDL_GPUTexture* disposed_texture : textures)
 		{
 			SDL_ReleaseGPUTexture(m_Device, disposed_texture);
@@ -140,6 +142,7 @@ namespace BB3D
 		));
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png"));
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_03.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png"));
 
 		// Load Meshes
 		meshes.push_back(LoadMeshFromFile(m_Device, "assets/ico.obj"));
@@ -153,7 +156,7 @@ namespace BB3D
 		SDL_GPUShader* no_phong_frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-no-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 		SDL_GPUShader* skybox_vert_shader = CreateShaderFromFile(m_Device, "Shaders/skybox.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
 		SDL_GPUShader* skybox_frag_shader = CreateShaderFromFile(m_Device, "Shaders/skybox.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
-		SDL_GPUShader* ui_vert_shader = CreateShaderFromFile(m_Device, "Shaders/ui.vert.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 0, 1, 0, 0);
+		SDL_GPUShader* ui_vert_shader = CreateShaderFromFile(m_Device, "Shaders/ui.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
 		SDL_GPUShader* ui_frag_shader = CreateShaderFromFile(m_Device, "Shaders/ui.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 
 		m_PipelineModelsPhong = CreateGraphicsPipelineForModels(
@@ -195,12 +198,15 @@ namespace BB3D
 
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 
+		ui_buff = CreateUILayerBuffer(m_Device);
+
 		// Entities TODO
 		game_entities.push_back( {meshes[2], textures[2], glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, -4.0f), glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(0.0f) });
 		game_entities.push_back( {meshes[1], textures[2], glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f), glm::vec3(0.0f), glm::vec3(5.0f, 1.0f, 5.0f), glm::vec3(0.0f) });
 		
 		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
+		proj_ui = glm::ortho(0.0f, 1280.0f, 720.0f, 0.0f, -1.0f, 1.0f);
 
 		m_StaticCamera.pos = glm::vec3(0.0f, 0.0f, 4.0f);
 		m_StaticCamera.front = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -310,13 +316,21 @@ namespace BB3D
 		SDL_EndGPURenderPass(render_pass_models);
 
 		// Stage 3: UI Layer
+		UI_Element test = { textures[4], {100.0f, 100.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 45, 45 };
+		ui_layer.PushElementToUIBuff(m_Device, ui_buff, test);
+
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(
 			cmd_buff,
 			&color_target_info,
 			1,
 			nullptr
 		);
+		SDL_BindGPUGraphicsPipeline(render_pass_ui, m_PipelineUI);
 
+		SDL_GPUBufferBinding test_bind = { ui_buff, 0 };
+		SDL_BindGPUVertexBuffers(render_pass_ui, 0, &test_bind, 1);
+		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(proj_ui), sizeof(proj_ui));
+		SDL_DrawGPUPrimitives(render_pass_ui, 6, 1, 0, 0);
 
 
 		SDL_EndGPURenderPass(render_pass_ui);

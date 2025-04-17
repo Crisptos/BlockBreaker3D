@@ -18,6 +18,50 @@ namespace BB3D
 
 	void UI::PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element& elem)
 	{
+		// UI Vertices
+		// X, Y, U, V, R, G, B, A
+		Vertex vertices[6] = {
+			{elem.pos.x + elem.width, elem.pos.y, 1.0, 0.0, elem.color[0], elem.color[1], elem.color[2], elem.color[3]},				// tr 0
+			{elem.pos.x + elem.width, elem.pos.y + elem.height, 1.0, 1.0, elem.color[0], elem.color[1], elem.color[2], elem.color[3]},  // br 1
+			{elem.pos.x, elem.pos.y, 0.0, 0.0, elem.color[0], elem.color[1], elem.color[2], elem.color[3]},								// tl 3
+			{elem.pos.x + elem.width, elem.pos.y + elem.height, 1.0, 1.0, elem.color[0], elem.color[1], elem.color[2], elem.color[3]},  // br 1
+			{elem.pos.x, elem.pos.y + elem.height, 0.0, 1.0, elem.color[0], elem.color[1], elem.color[2], elem.color[3]},				// bl 2
+			{elem.pos.x, elem.pos.y, 0.0, 0.0, elem.color[0], elem.color[1], elem.color[2], elem.color[3]},								// tl 3
+		};
 
+		SDL_GPUTransferBufferCreateInfo ui_transfer_create_info = {};
+		ui_transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+		ui_transfer_create_info.size = sizeof(vertices);
+		SDL_GPUTransferBuffer* ui_trans_buff = SDL_CreateGPUTransferBuffer(device, &ui_transfer_create_info);
+
+		void* ui_trans_ptr = SDL_MapGPUTransferBuffer(device, ui_trans_buff, false);
+
+		std::memcpy(ui_trans_ptr, vertices, sizeof(vertices));
+
+		SDL_UnmapGPUTransferBuffer(device, ui_trans_buff);
+
+		SDL_GPUCommandBuffer* ui_copy_cmd_buff = SDL_AcquireGPUCommandBuffer(device);
+		SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(ui_copy_cmd_buff);
+
+		SDL_GPUTransferBufferLocation ui_trans_location = {};
+		ui_trans_location.transfer_buffer = ui_trans_buff;
+		ui_trans_location.offset = frame_offset;
+		SDL_GPUBufferRegion ui_region = {};
+		ui_region.buffer = ui_buff;
+		ui_region.offset = 0;
+		ui_region.size = sizeof(vertices);
+
+		SDL_UploadToGPUBuffer(copy_pass, &ui_trans_location, &ui_region, false);
+
+		SDL_EndGPUCopyPass(copy_pass);
+		SDL_ReleaseGPUTransferBuffer(device, ui_trans_buff);
+
+		if (!SDL_SubmitGPUCommandBuffer(ui_copy_cmd_buff))
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		frame_offset += sizeof(vertices);
 	}
 }
