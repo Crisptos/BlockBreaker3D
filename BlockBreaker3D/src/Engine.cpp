@@ -90,7 +90,7 @@ namespace BB3D
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsPhong);
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineSkybox);
 
-		for (Mesh disposed_mesh : meshes)
+		for (Mesh& disposed_mesh : meshes)
 		{
 			SDL_ReleaseGPUBuffer(m_Device, disposed_mesh.vbo);
 			SDL_ReleaseGPUBuffer(m_Device, disposed_mesh.ibo);
@@ -179,7 +179,8 @@ namespace BB3D
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 
 		// Entities TODO
-		//game_entities.push_back({meshes[]});
+		game_entities.push_back( {meshes[2], textures[2], glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, -4.0f), glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(0.0f) });
+		game_entities.push_back( {meshes[1], textures[2], glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f), glm::vec3(0.0f), glm::vec3(5.0f, 1.0f, 5.0f), glm::vec3(0.0f) });
 		
 		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
@@ -193,21 +194,16 @@ namespace BB3D
 
 	void Engine::Update()
 	{
+		for (Entity& current_entity : game_entities)
+		{
+			current_entity.UpdateTransform();
+		}
 
 	}
 
 	// ________________________________ Runtime ________________________________
 	void Engine::Render()
 	{
-		/*
-			Acquire Command Buffer
-			Acquire Swapchain Texture
-			Begin Render Pass
-			Draw
-			End Render Pass
-			More Render Passes
-			Submit Command Buffer
-		*/
 		SDL_GPUCommandBuffer* cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
 
 		SDL_GPUTexture* swapchain_tex;
@@ -222,12 +218,6 @@ namespace BB3D
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to acquire swapchain texture: %s\n", SDL_GetError());
 			std::abort();
 		}
-
-		// Per Renderpass
-		//	Bind Pipeline
-		//	Bind Vertex Data
-		//	Bind Uniform
-		//	Draw Call
 
 		SDL_GPUColorTargetInfo color_target_info = {};
 		color_target_info.texture = swapchain_tex;
@@ -248,17 +238,15 @@ namespace BB3D
 			nullptr
 		);
 
+		// Stage 1: Skybox
 		SDL_BindGPUGraphicsPipeline(render_pass_skybox, m_PipelineSkybox);
 		SDL_GPUTextureSamplerBinding skybox_bind = { textures[SKYBOX_TEXTURE_IDX], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_skybox, 0, &skybox_bind, 1);
-
 		glm::mat4 vp_sky(1.0f);
 		glm::mat4 view_no_transform = glm::mat4(glm::mat3(m_StaticCamera.GetViewMatrix()));
 		vp_sky = proj * view_no_transform;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(vp_sky), sizeof(vp_sky));
-
 		SDL_DrawGPUPrimitives(render_pass_skybox, 36, 1, 0, 0);
-
 		SDL_EndGPURenderPass(render_pass_skybox);
 
 		SDL_GPURenderPass* render_pass_models = SDL_BeginGPURenderPass(
@@ -267,7 +255,6 @@ namespace BB3D
 			1,
 			&depth_stencil_target_info
 		);
-
 		SDL_GPUBufferBinding binding = { meshes[2].vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding, 1);
 		SDL_GPUBufferBinding ind_bind = { meshes[2].ibo, 0 };
@@ -275,14 +262,10 @@ namespace BB3D
 		SDL_GPUTextureSamplerBinding tex_bind = {textures[2], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &tex_bind, 1);
 
-		// Vertex Attributes - per vertex data
-		// Uniform Data - pew draw call
-		// TODO - Clean this up
-		// Draw the light source icosphere first then the phong shaded icosphere with a different model transform
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsNoPhong);
 		model2 = glm::mat4(1.0f);
-		model2 = glm::scale(model2, glm::vec3(0.5, 0.5, 0.5));
 		model2 = glm::translate(model2, glm::vec3(-2.0f, 1.0f, -2.0f));
+		model2 = glm::scale(model2, glm::vec3(0.5, 0.5, 0.5));
 		mvp = proj * m_StaticCamera.GetViewMatrix() * model2;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[2].ind_count, 1, 0, 0, 0);
@@ -291,39 +274,20 @@ namespace BB3D
 		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
 		glm::vec4 light_pos = origin * model2;
 
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, height, -4.0f));
-		mvp = proj * m_StaticCamera.GetViewMatrix() * model;
-		glm::mat4 v_ubo1[2] = {model, mvp};
-		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo1[0]), sizeof(v_ubo1));
-		float f_ubo[16] = { 
-			0.97f, 0.64f, 0.12f, 0.0f,
-			1.0f, 1.0f, 1.0f, 0.0f,
-			light_pos.x, light_pos.y, light_pos.z, 0.0f,
-			m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
-		};
-		SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
-		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[2].ind_count, 1, 0, 0, 0);
-
-		SDL_GPUBufferBinding binding1 = { meshes[1].vbo, 0};
-		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding1, 1);
-		SDL_GPUBufferBinding ind_bind1 = { meshes[1].ibo, 0};
-		SDL_BindGPUIndexBuffer(render_pass_models, &ind_bind1, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-
-		model = glm::mat4(1.0f);
-		model = glm::scale(model, glm::vec3(5.0f, 1.0f, 5.0f));
-		model = glm::translate(model, glm::vec3(0.0f, -2.0f, 0.0f));
-		mvp = proj * m_StaticCamera.GetViewMatrix() * model;
-		glm::mat4 v_ubo3[2] = { model, mvp };
-		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo3[0]), sizeof(v_ubo3));
-		float f_ubo3[16] = {
-			0.27f, 0.24f, 0.82f, 0.0f,
-			1.0f, 1.0f, 1.0f, 0.0f,
-			light_pos.x, light_pos.y, light_pos.z, 0.0f,
-			m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
-		};
-		SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo3, sizeof(f_ubo3));
-		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[1].ind_count, 1, 0, 0, 0);
+		for (Entity current_entity : game_entities)
+		{
+			mvp = proj * m_StaticCamera.GetViewMatrix() * current_entity.GetTransformMatrix();
+			glm::mat4 v_ubo[2] = { current_entity.GetTransformMatrix(), mvp};
+			SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo[0]), sizeof(v_ubo));
+			float f_ubo[16] = {
+				0.97f, 0.64f, 0.12f, 0.0f,
+				1.0f, 1.0f, 1.0f, 0.0f,
+				light_pos.x, light_pos.y, light_pos.z, 0.0f,
+				m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
+			};
+			SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
+			current_entity.Draw(render_pass_models, { current_entity.mesh.vbo, 0 }, { current_entity.mesh.ibo, 0 }, {current_entity.texture, m_Sampler});
+		}
 
 		SDL_EndGPURenderPass(render_pass_models);
 
@@ -351,12 +315,14 @@ namespace BB3D
 				case SDL_EVENT_QUIT:
 				{
 					m_IsRunning = false;
+					break;
 				}
 
 				case SDL_EVENT_MOUSE_MOTION:
 				{
 					relx = ev.motion.xrel;
 					rely = ev.motion.yrel;
+					break;
 				}
 			}
 		}

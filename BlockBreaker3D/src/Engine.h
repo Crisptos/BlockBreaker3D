@@ -79,7 +79,8 @@ namespace BB3D
 		glm::vec3 velocity;
 
 		void UpdateTransform();
-		void Draw(SDL_GPURenderPass* render_pass, SDL_GPUBufferBinding vbo_bind, SDL_GPUBufferBinding ibo_bind);
+		glm::mat4 GetTransformMatrix();
+		void Draw(SDL_GPURenderPass* render_pass, SDL_GPUBufferBinding vbo_bind, SDL_GPUBufferBinding ibo_bind, SDL_GPUTextureSamplerBinding tex_bind);
 	};
 
 	// ________________________________ Main Engine Class ________________________________

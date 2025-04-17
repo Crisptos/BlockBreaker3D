@@ -2,10 +2,10 @@
 
 // GLSL pads vec3 to 16 bytes per std140, caused a fun lighting bug
 layout(set=3, binding = 0)uniform UBO {
-	vec3 object_color_base;
-	vec3 incoming_light_color;
-	vec3 light_pos;
-	vec3 view_pos;
+	vec3 object_color_base; float pad0;
+	vec3 incoming_light_color; float pad1;
+	vec3 light_pos; float pad2;
+	vec3 view_pos; float pad3;
 };
 
 layout(location = 0) in vec3 normal;
