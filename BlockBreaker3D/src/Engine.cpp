@@ -10,6 +10,7 @@ namespace BB3D
 {
 	// ________________________________ Globals (TEST) ________________________________
 	glm::mat4 proj(1.0f);
+	glm::mat4 proj_ui(1.0f);
 	glm::mat4 model(1.0f);
 	glm::mat4 model2(1.0f);
 	glm::mat4 mvp(1.0f);
@@ -92,6 +93,7 @@ namespace BB3D
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsNoPhong);
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsPhong);
 		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineSkybox);
+		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineUI);
 
 		for (Mesh& disposed_mesh : meshes)
 		{
@@ -151,6 +153,8 @@ namespace BB3D
 		SDL_GPUShader* no_phong_frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-no-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 		SDL_GPUShader* skybox_vert_shader = CreateShaderFromFile(m_Device, "Shaders/skybox.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
 		SDL_GPUShader* skybox_frag_shader = CreateShaderFromFile(m_Device, "Shaders/skybox.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+		SDL_GPUShader* ui_vert_shader = CreateShaderFromFile(m_Device, "Shaders/ui.vert.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 0, 1, 0, 0);
+		SDL_GPUShader* ui_frag_shader = CreateShaderFromFile(m_Device, "Shaders/ui.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 
 		m_PipelineModelsPhong = CreateGraphicsPipelineForModels(
 			m_Device, 
@@ -173,12 +177,21 @@ namespace BB3D
 			skybox_frag_shader
 		);
 
+		m_PipelineUI = CreateGraphicsPipelineForUI(
+			m_Device,
+			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			ui_vert_shader,
+			ui_frag_shader
+		);
+
 		SDL_ReleaseGPUShader(m_Device, phong_vert_shader_model);
 		SDL_ReleaseGPUShader(m_Device, phong_frag_shader_model);
 		SDL_ReleaseGPUShader(m_Device, no_phong_frag_shader_model);
 		SDL_ReleaseGPUShader(m_Device, no_phong_vert_shader_model);
 		SDL_ReleaseGPUShader(m_Device, skybox_vert_shader);
 		SDL_ReleaseGPUShader(m_Device, skybox_frag_shader);
+		SDL_ReleaseGPUShader(m_Device, ui_vert_shader);
+		SDL_ReleaseGPUShader(m_Device, ui_frag_shader);
 
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 
@@ -266,6 +279,7 @@ namespace BB3D
 		SDL_GPUTextureSamplerBinding tex_bind = {textures[3], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &tex_bind, 1);
 
+		// Stage 2: 3D Models
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsNoPhong);
 		model2 = glm::mat4(1.0f);
 		model2 = glm::translate(model2, glm::vec3(-2.0f, 1.0f, -2.0f));
@@ -294,6 +308,18 @@ namespace BB3D
 		}
 
 		SDL_EndGPURenderPass(render_pass_models);
+
+		// Stage 3: UI Layer
+		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(
+			cmd_buff,
+			&color_target_info,
+			1,
+			nullptr
+		);
+
+
+
+		SDL_EndGPURenderPass(render_pass_ui);
 
 
 		if (!SDL_SubmitGPUCommandBuffer(cmd_buff))

@@ -55,6 +55,7 @@ namespace BB3D
 	// ________________________________ GraphicsPipeline.cpp ________________________________
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForModels(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForSkybox(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
+	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForUI(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
 
 	// ________________________________ Fonts.cpp ________________________________
 	struct Glyph {
@@ -85,6 +86,24 @@ namespace BB3D
 		glm::mat4 GetTransformMatrix();
 		void Draw(SDL_GPURenderPass* render_pass, SDL_GPUBufferBinding vbo_bind, SDL_GPUBufferBinding ibo_bind, SDL_GPUTextureSamplerBinding tex_bind);
 	};
+
+	// ________________________________ UI.cpp ________________________________
+	struct UI_Element
+	{
+		SDL_GPUTexture* texture;
+
+		glm::vec2 pos;
+		glm::vec3 color;
+	};
+
+	struct UI
+	{
+		unsigned int count;
+
+		void PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element& elem);
+	};
+
+	SDL_GPUBuffer* CreateUILayerBuffer(SDL_GPUDevice* device);
 
 	// ________________________________ Main Engine Class ________________________________
 
@@ -131,6 +150,8 @@ namespace BB3D
 		SDL_GPUGraphicsPipeline* m_PipelineSkybox;
 		SDL_GPUGraphicsPipeline* m_PipelineModelsPhong;
 		SDL_GPUGraphicsPipeline* m_PipelineModelsNoPhong;
+		SDL_GPUGraphicsPipeline* m_PipelineUI;
+		SDL_GPUBuffer* ui_buff;
 		std::vector<Mesh> meshes;
 		std::vector<SDL_GPUTexture*> textures;
 

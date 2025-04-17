@@ -144,14 +144,6 @@ namespace BB3D
 
 	SDL_GPUTexture* CreateAndLoadTextureToGPU(SDL_GPUDevice* device, const char* filepath)
 	{
-		// Load texture
-		//  Load the pixels
-		//  Create texture on the GPU
-		//  Upload pixels to GPU texture
-		//  Assign texture UV coordinates to vertices
-		//  Create sampler
-		//  Sample using UV in fragment shader
-
 		SDL_GPUTexture* new_texture = {};
 		Image loaded_img = {};
 
