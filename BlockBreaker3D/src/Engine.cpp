@@ -298,7 +298,7 @@ namespace BB3D
 		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
 		glm::vec4 light_pos = origin * model2;
 
-		for (Entity current_entity : game_entities)
+		for (Entity& current_entity : game_entities)
 		{
 			mvp = proj * m_StaticCamera.GetViewMatrix() * current_entity.GetTransformMatrix();
 			glm::mat4 v_ubo[2] = { current_entity.GetTransformMatrix(), mvp};
@@ -325,10 +325,17 @@ namespace BB3D
 			1,
 			nullptr
 		);
+		if (!render_pass_ui) {
+			SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, "Failed to begin UI render pass: %s", SDL_GetError());
+			std::abort();
+		}
 		SDL_BindGPUGraphicsPipeline(render_pass_ui, m_PipelineUI);
 
 		SDL_GPUBufferBinding test_bind = { ui_buff, 0 };
 		SDL_BindGPUVertexBuffers(render_pass_ui, 0, &test_bind, 1);
+		SDL_GPUTextureSamplerBinding testtex_bind = { test.texture, m_Sampler };
+		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &testtex_bind, 1);
+
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(proj_ui), sizeof(proj_ui));
 		SDL_DrawGPUPrimitives(render_pass_ui, 6, 1, 0, 0);
 
@@ -341,6 +348,9 @@ namespace BB3D
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit command buffer to GPU: %s\n", SDL_GetError());
 			std::abort();
 		}
+
+		// TODO REMOVE
+		ui_layer.frame_offset = 0;
 	}
 
 	void Engine::Input()

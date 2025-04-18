@@ -45,10 +45,10 @@ namespace BB3D
 
 		SDL_GPUTransferBufferLocation ui_trans_location = {};
 		ui_trans_location.transfer_buffer = ui_trans_buff;
-		ui_trans_location.offset = frame_offset;
+		ui_trans_location.offset = 0;
 		SDL_GPUBufferRegion ui_region = {};
 		ui_region.buffer = ui_buff;
-		ui_region.offset = 0;
+		ui_region.offset = frame_offset;
 		ui_region.size = sizeof(vertices);
 
 		SDL_UploadToGPUBuffer(copy_pass, &ui_trans_location, &ui_region, false);
@@ -56,11 +56,15 @@ namespace BB3D
 		SDL_EndGPUCopyPass(copy_pass);
 		SDL_ReleaseGPUTransferBuffer(device, ui_trans_buff);
 
-		if (!SDL_SubmitGPUCommandBuffer(ui_copy_cmd_buff))
+		SDL_GPUFence* upload_fence = SDL_SubmitGPUCommandBufferAndAcquireFence(ui_copy_cmd_buff);
+		if(!upload_fence)
 		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU: %s\n", SDL_GetError());
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU and acquire fence: %s\n", SDL_GetError());
 			std::abort();
 		}
+
+		SDL_WaitForGPUFences(device, true, &upload_fence, 1);
+		SDL_ReleaseGPUFence(device, upload_fence);
 
 		frame_offset += sizeof(vertices);
 	}

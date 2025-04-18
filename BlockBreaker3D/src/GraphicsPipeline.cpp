@@ -103,8 +103,7 @@ namespace BB3D
 		SDL_GPUGraphicsPipelineTargetInfo target_info_pipeline = {};
 		target_info_pipeline.num_color_targets = 1;
 		target_info_pipeline.color_target_descriptions = &color_target_dscr;
-		target_info_pipeline.has_depth_stencil_target = true;
-		target_info_pipeline.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM;
+		target_info_pipeline.has_depth_stencil_target = false;
 
 		SDL_GPUVertexAttribute attribs[3] = {};
 		attribs[0].location = 0;
