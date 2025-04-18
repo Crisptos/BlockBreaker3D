@@ -27,16 +27,18 @@ namespace BB3D
 		}
 		FT_Set_Pixel_Sizes(face, 0, 64);
 
-		err = FT_Load_Char(face, 'A', FT_LOAD_RENDER);
+		err = FT_Load_Char(face, 'C', FT_LOAD_RENDER);
 		if (err)
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to extract glyph from face: %s\n", FT_Error_String(err));
 			std::abort();
 		}
 
+		SDL_Log("Glyph A: width: %d, height: %d, advance: %ld\n", face->glyph->bitmap.width, face->glyph->bitmap.rows, face->glyph->advance.x >> 6);
 
+		FT_Done_Face(face);
 
-		SDL_GPUTexture* new_atlas_tex = CreateAndLoadFontAtlasTextureToGPU(device, atlas_buffer.data());
+		SDL_GPUTexture* new_atlas_tex = CreateAndLoadFontAtlasTextureToGPU(device, atlas_buffer.data(), {0});
 		return new_atlas_tex;
 	}
 

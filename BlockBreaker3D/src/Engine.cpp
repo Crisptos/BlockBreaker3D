@@ -144,6 +144,8 @@ namespace BB3D
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_03.png"));
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png"));
 
+		SDL_GPUTexture* test_font = CreateFontAtlasFromFile(m_Device, "assets/fonts/DejaVuSansMono.ttf");
+
 		// Load Meshes
 		meshes.push_back(LoadMeshFromFile(m_Device, "assets/ico.obj"));
 		meshes.push_back(LoadMeshFromFile(m_Device, "assets/quad.obj"));
