@@ -341,16 +341,13 @@ namespace BB3D
 
 
 		SDL_EndGPURenderPass(render_pass_ui);
-
+		ui_layer.FlushUIBuff(m_Device);
 
 		if (!SDL_SubmitGPUCommandBuffer(cmd_buff))
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit command buffer to GPU: %s\n", SDL_GetError());
 			std::abort();
 		}
-
-		// TODO REMOVE
-		ui_layer.frame_offset = 0;
 	}
 
 	void Engine::Input()

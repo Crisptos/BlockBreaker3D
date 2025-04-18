@@ -61,6 +61,7 @@ namespace BB3D
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForModels(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForSkybox(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
 	SDL_GPUGraphicsPipeline* CreateGraphicsPipelineForUI(SDL_GPUDevice* device, SDL_GPUTextureFormat color_target_format, SDL_GPUShader* vert_shader, SDL_GPUShader* frag_shader);
+	SDL_GPUTexture* CreateAndLoadFontAtlasTextureToGPU(SDL_GPUDevice* device, const unsigned char* atlas_buffer);
 
 	// ________________________________ Fonts.cpp ________________________________
 	struct Glyph {
@@ -71,6 +72,7 @@ namespace BB3D
 	};
 
 	void InitFreeType();
+	SDL_GPUTexture* CreateFontAtlasFromFile(SDL_GPUDevice* device, const char* filepath);
 	void DestroyFreeType();
 
 	// ________________________________ Entity.cpp ________________________________

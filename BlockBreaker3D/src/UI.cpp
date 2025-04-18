@@ -68,4 +68,9 @@ namespace BB3D
 
 		frame_offset += sizeof(vertices);
 	}
+
+	void UI::FlushUIBuff(SDL_GPUDevice* device)
+	{
+		frame_offset = 0;
+	}
 }

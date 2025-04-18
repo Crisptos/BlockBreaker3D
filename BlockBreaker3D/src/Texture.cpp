@@ -236,4 +236,9 @@ namespace BB3D
 		return new_sampler;
 	}
 
+	SDL_GPUTexture* CreateAndLoadFontAtlasTextureToGPU(SDL_GPUDevice* device, const unsigned char* atlas_buffer)
+	{
+		// TODO
+		return nullptr;
+	}
 }
