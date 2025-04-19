@@ -71,8 +71,14 @@ namespace BB3D
 		unsigned int advance;
 	};
 
+	struct FontAtlas
+	{
+		SDL_GPUTexture* atlas_texture;
+		std::vector<Glyph> glyph_metadata;
+	};
+
 	void InitFreeType();
-	SDL_GPUTexture* CreateFontAtlasFromFile(SDL_GPUDevice* device, const char* filepath);
+	FontAtlas CreateFontAtlasFromFile(SDL_GPUDevice* device, const char* filepath);
 	void DestroyFreeType();
 
 	// ________________________________ Entity.cpp ________________________________

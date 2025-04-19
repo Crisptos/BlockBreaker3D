@@ -15,6 +15,8 @@ namespace BB3D
 	glm::mat4 model2(1.0f);
 	glm::mat4 mvp(1.0f);
 
+	FontAtlas test_font;
+
 	float last_x = 0.0f;
 	float last_y = 0.0f;
 
@@ -107,7 +109,7 @@ namespace BB3D
 		{
 			SDL_ReleaseGPUTexture(m_Device, disposed_texture);
 		}
-
+		SDL_ReleaseGPUTexture(m_Device, test_font.atlas_texture);
 		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
 
 		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
@@ -144,7 +146,7 @@ namespace BB3D
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_03.png"));
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png"));
 
-		SDL_GPUTexture* test_font = CreateFontAtlasFromFile(m_Device, "assets/fonts/DejaVuSansMono.ttf");
+		test_font = CreateFontAtlasFromFile(m_Device, "assets/fonts/DejaVuSansMono.ttf");
 
 		// Load Meshes
 		meshes.push_back(LoadMeshFromFile(m_Device, "assets/ico.obj"));
@@ -318,7 +320,7 @@ namespace BB3D
 		SDL_EndGPURenderPass(render_pass_models);
 
 		// Stage 3: UI Layer
-		UI_Element test = { textures[4], {100.0f, 100.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 45, 45 };
+		UI_Element test = { test_font.atlas_texture, {100.0f, 100.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 512, 512 };
 		ui_layer.PushElementToUIBuff(m_Device, ui_buff, test);
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(

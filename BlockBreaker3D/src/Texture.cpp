@@ -244,13 +244,13 @@ namespace BB3D
 		tex_info.type = SDL_GPU_TEXTURETYPE_2D;
 		tex_info.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
 		tex_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
-		tex_info.width = 0;
-		tex_info.height = 0;
+		tex_info.width = atlas_props.x;
+		tex_info.height = atlas_props.y;
 		tex_info.layer_count_or_depth = 1;
 		tex_info.num_levels = 1;
 		new_texture = SDL_CreateGPUTexture(device, &tex_info);
-		// TODO
-		/*if (!new_texture)
+
+		if (!new_texture)
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to create GPU texture: %s\n", SDL_GetError());
 			std::abort();
@@ -258,7 +258,7 @@ namespace BB3D
 
 		SDL_GPUTransferBufferCreateInfo tex_transfer_create_info = {};
 		tex_transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-		tex_transfer_create_info.size = 4 * (loaded_img.x * loaded_img.y);
+		tex_transfer_create_info.size = 1 * (atlas_props.x * atlas_props.y);
 		SDL_GPUTransferBuffer* tex_trans_buff = SDL_CreateGPUTransferBuffer(device, &tex_transfer_create_info);
 		if (!tex_trans_buff)
 		{
@@ -273,7 +273,7 @@ namespace BB3D
 			std::abort();
 		}
 
-		std::memcpy(tex_trans_ptr, image_data, 4 * (loaded_img.x * loaded_img.y));
+		std::memcpy(tex_trans_ptr, atlas_buffer, sizeof(unsigned char) * (atlas_props.x * atlas_props.y));
 		SDL_UnmapGPUTransferBuffer(device, tex_trans_buff);
 
 		SDL_GPUCommandBuffer* tex_copy_cmd_buff = SDL_AcquireGPUCommandBuffer(device);
@@ -295,8 +295,8 @@ namespace BB3D
 		tex_trans_info.transfer_buffer = tex_trans_buff;
 		SDL_GPUTextureRegion tex_trans_region = {};
 		tex_trans_region.texture = new_texture;
-		tex_trans_region.w = loaded_img.x;
-		tex_trans_region.h = loaded_img.y;
+		tex_trans_region.w = atlas_props.x;
+		tex_trans_region.h = atlas_props.y;
 		tex_trans_region.d = 1;
 		SDL_UploadToGPUTexture(tex_copy_pass, &tex_trans_info, &tex_trans_region, false);
 		SDL_EndGPUCopyPass(tex_copy_pass);
@@ -305,8 +305,7 @@ namespace BB3D
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU Texture: %s\n", SDL_GetError());
 			std::abort();
 		}
-		stbi_image_free(image_data);
-		SDL_ReleaseGPUTransferBuffer(device, tex_trans_buff);*/
+		SDL_ReleaseGPUTransferBuffer(device, tex_trans_buff);
 
 		return new_texture;
 	}
