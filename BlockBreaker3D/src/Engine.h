@@ -65,7 +65,6 @@ namespace BB3D
 
 	// ________________________________ Fonts.cpp ________________________________
 	struct Glyph {
-		SDL_GPUTexture* texture;
 		glm::ivec2   size;
 		glm::ivec2   bearing;
 		unsigned int advance;

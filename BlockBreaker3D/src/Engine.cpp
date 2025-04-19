@@ -320,7 +320,7 @@ namespace BB3D
 		SDL_EndGPURenderPass(render_pass_models);
 
 		// Stage 3: UI Layer
-		UI_Element test = { test_font.atlas_texture, {100.0f, 100.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 512, 512 };
+		UI_Element test = { test_font.atlas_texture, {50.0f, 50.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 512, 512 };
 		ui_layer.PushElementToUIBuff(m_Device, ui_buff, test);
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(

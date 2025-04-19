@@ -1,6 +1,7 @@
 #include "Engine.h"
 
 #define FONT_CELL_SIZE 64
+#define ATLAS_RESOLUTION 512
 
 namespace BB3D
 {
@@ -18,9 +19,9 @@ namespace BB3D
 	FontAtlas CreateFontAtlasFromFile(SDL_GPUDevice* device, const char* filepath)
 	{
 		FontAtlas new_atlas = {};
-		new_atlas.glyph_metadata.reserve(126);
+		new_atlas.glyph_metadata.resize(126);
 
-		std::vector<Uint32> atlas_buffer(512 * 512); // 8 x 8 Font Cell Size
+		std::vector<Uint32> atlas_buffer(ATLAS_RESOLUTION * ATLAS_RESOLUTION); // 8 x 8 Font Cell Size
 
 		FT_Face face;
 		FT_Error err = FT_New_Face(ft, filepath, 0, &face);
@@ -42,6 +43,14 @@ namespace BB3D
 				std::abort();
 			}
 
+			// Glyph Metrics Recording
+			new_atlas.glyph_metadata[c] = { 
+				{face->glyph->bitmap.width, face->glyph->bitmap.rows}, 
+				{face->glyph->bitmap_left, face->glyph->bitmap_top},
+				static_cast<unsigned int>(face->glyph->advance.x) // TODO keep an eye on this
+			};
+
+			// BMP Processing
 			size_t col = glyph_count % 8;
 			size_t row = glyph_count / 8;
 
@@ -64,7 +73,7 @@ namespace BB3D
 					new_pixel |= new_pixel << 8; // B
 					new_pixel |= 0; // A
 
-					atlas_buffer[dst_y * 512 + dst_x] = new_pixel;
+					atlas_buffer[dst_y * ATLAS_RESOLUTION + dst_x] = new_pixel;
 				}
 			}
 
