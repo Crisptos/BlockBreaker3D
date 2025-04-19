@@ -236,13 +236,13 @@ namespace BB3D
 		return new_sampler;
 	}
 
-	SDL_GPUTexture* CreateAndLoadFontAtlasTextureToGPU(SDL_GPUDevice* device, const unsigned char* atlas_buffer, Image atlas_props)
+	SDL_GPUTexture* CreateAndLoadFontAtlasTextureToGPU(SDL_GPUDevice* device, const Uint32* atlas_buffer, Image atlas_props)
 	{
 		SDL_GPUTexture* new_texture = {};
 
 		SDL_GPUTextureCreateInfo tex_info = {};
 		tex_info.type = SDL_GPU_TEXTURETYPE_2D;
-		tex_info.format = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
+		tex_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 		tex_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
 		tex_info.width = atlas_props.x;
 		tex_info.height = atlas_props.y;
@@ -258,7 +258,7 @@ namespace BB3D
 
 		SDL_GPUTransferBufferCreateInfo tex_transfer_create_info = {};
 		tex_transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-		tex_transfer_create_info.size = 1 * (atlas_props.x * atlas_props.y);
+		tex_transfer_create_info.size = 4 * (atlas_props.x * atlas_props.y);
 		SDL_GPUTransferBuffer* tex_trans_buff = SDL_CreateGPUTransferBuffer(device, &tex_transfer_create_info);
 		if (!tex_trans_buff)
 		{
@@ -273,7 +273,7 @@ namespace BB3D
 			std::abort();
 		}
 
-		std::memcpy(tex_trans_ptr, atlas_buffer, sizeof(unsigned char) * (atlas_props.x * atlas_props.y));
+		std::memcpy(tex_trans_ptr, atlas_buffer, sizeof(Uint32) * (atlas_props.x * atlas_props.y));
 		SDL_UnmapGPUTransferBuffer(device, tex_trans_buff);
 
 		SDL_GPUCommandBuffer* tex_copy_cmd_buff = SDL_AcquireGPUCommandBuffer(device);

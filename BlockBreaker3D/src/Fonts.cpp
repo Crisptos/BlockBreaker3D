@@ -20,7 +20,7 @@ namespace BB3D
 		FontAtlas new_atlas = {};
 		new_atlas.glyph_metadata.reserve(126);
 
-		std::vector<unsigned char> atlas_buffer((FONT_CELL_SIZE * FONT_CELL_SIZE) * 64); // 8 x 8 Font Cell Size
+		std::vector<Uint32> atlas_buffer(512 * 512); // 8 x 8 Font Cell Size
 
 		FT_Face face;
 		FT_Error err = FT_New_Face(ft, filepath, 0, &face);
@@ -53,9 +53,19 @@ namespace BB3D
 			for (int y = 0; y < bmp.rows; y++)
 			{
 				size_t dst_y = y_offset + y;
-				size_t dst_offset = dst_y * 512 + x_offset;
+				for (int x = 0; x < bmp.width; x++)
+				{
+					size_t dst_x = x_offset + x;
 
-				std::memcpy(&atlas_buffer[dst_offset], &bmp.buffer[y * bmp.pitch], sizeof(unsigned char) * bmp.width);
+					unsigned char gray_pixel = bmp.buffer[y * bmp.pitch + x];
+					Uint32 new_pixel = gray_pixel;
+					new_pixel |= new_pixel << 24; // R 
+					new_pixel |= new_pixel << 16; // G
+					new_pixel |= new_pixel << 8; // B
+					new_pixel |= 0; // A
+
+					atlas_buffer[dst_y * 512 + dst_x] = new_pixel;
+				}
 			}
 
 			glyph_count++;
