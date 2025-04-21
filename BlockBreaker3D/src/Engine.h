@@ -112,7 +112,8 @@ namespace BB3D
 	struct UI
 	{
 		unsigned int frame_offset = 0; // 1 vertex + 32 bytes
-
+		
+		void PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, std::string text_field, glm::vec2 pos, glm::vec4 color, FontAtlas& atlas);
 		void PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element& elem);
 		void FlushUIBuff(SDL_GPUDevice* device);
 	};

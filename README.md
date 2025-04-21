@@ -18,7 +18,7 @@
 - [x] Phong shading model
 - [x] Skybox and Cubemap samplers
 - [x] Batched UI Layer Rendering
-- [ ] Font Rendering (WIP)
+- [x] Font Rendering (WIP)
 - [ ] Custom 2D Physics (WIP)
 - [ ] Breakout Gameplay (WIP)
 - [ ] Custom Level Creation and Loading (WIP)

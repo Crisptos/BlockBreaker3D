@@ -16,6 +16,97 @@ namespace BB3D
 		return new_ui_buff;
 	}
 
+	void UI::PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, std::string text_field, glm::vec2 pos, glm::vec4 color, FontAtlas& atlas)
+	{
+		// UI Vertices
+		// X, Y, U, V, R, G, B, A
+		std::vector<Vertex> vertices;
+		vertices.reserve(6 * text_field.size());
+		unsigned int text_advance = 0;
+
+		// For each char, add a quad with the correct precomputed UV's
+		for (char& c : text_field)
+		{ 
+			Glyph c_props = atlas.glyph_metadata[c];
+
+			// 8x8 Text Atlas
+			// Atlas is from 32 - 90 ASCII
+			// Char - 31 = Num in 1d
+
+			int offset = (c - 32);
+
+			float v_column = std::floorf(offset / 8.0f) * (1.0f / 8.0f);
+			float u_row = (offset % 8) * (1.0f / 8.0f);
+			
+
+			vertices.push_back({ pos.x + c_props.size.x + text_advance, pos.y,																		// tr 0
+								 u_row + 0.125f, v_column,
+								 color[0], color[1], color[2], color[3] 
+			});
+			vertices.push_back({ pos.x + c_props.size.x + text_advance, pos.y + c_props.size.y,														// br 1
+								 u_row + 0.125f, v_column + 0.125f,
+								 color[0], color[1], color[2], color[3] 
+			});
+			vertices.push_back({ pos.x + text_advance, pos.y,																						// tl 3
+								 u_row, v_column,
+								 color[0], color[1], color[2], color[3] 
+			});										
+			vertices.push_back({ pos.x + c_props.size.x + text_advance, pos.y + c_props.size.y,														// br 1
+								 u_row + 0.125f, v_column + 0.125f,
+								 color[0], color[1], color[2], color[3] 
+			});
+			vertices.push_back({ pos.x + text_advance, pos.y + c_props.size.y,																		// bl 2
+								 u_row, v_column + 0.125f,
+								 color[0], color[1], color[2], color[3] 
+			});
+			vertices.push_back({ pos.x + text_advance, pos.y,																						// tl 3
+								 u_row, v_column,
+								 color[0], color[1], color[2], color[3] 
+			});
+
+			text_advance += c_props.advance;
+		}
+
+		SDL_GPUTransferBufferCreateInfo ui_transfer_create_info = {};
+		ui_transfer_create_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+		ui_transfer_create_info.size = sizeof(Vertex) * vertices.size();
+		SDL_GPUTransferBuffer* ui_trans_buff = SDL_CreateGPUTransferBuffer(device, &ui_transfer_create_info);
+
+		void* ui_trans_ptr = SDL_MapGPUTransferBuffer(device, ui_trans_buff, false);
+
+		std::memcpy(ui_trans_ptr, vertices.data(), sizeof(Vertex) * vertices.size());
+
+		SDL_UnmapGPUTransferBuffer(device, ui_trans_buff);
+
+		SDL_GPUCommandBuffer* ui_copy_cmd_buff = SDL_AcquireGPUCommandBuffer(device);
+		SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(ui_copy_cmd_buff);
+
+		SDL_GPUTransferBufferLocation ui_trans_location = {};
+		ui_trans_location.transfer_buffer = ui_trans_buff;
+		ui_trans_location.offset = 0;
+		SDL_GPUBufferRegion ui_region = {};
+		ui_region.buffer = ui_buff;
+		ui_region.offset = frame_offset;
+		ui_region.size = sizeof(Vertex) * vertices.size();
+
+		SDL_UploadToGPUBuffer(copy_pass, &ui_trans_location, &ui_region, false);
+
+		SDL_EndGPUCopyPass(copy_pass);
+		SDL_ReleaseGPUTransferBuffer(device, ui_trans_buff);
+
+		SDL_GPUFence* upload_fence = SDL_SubmitGPUCommandBufferAndAcquireFence(ui_copy_cmd_buff);
+		if (!upload_fence)
+		{
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to submit copy command buffer to GPU and acquire fence: %s\n", SDL_GetError());
+			std::abort();
+		}
+
+		SDL_WaitForGPUFences(device, true, &upload_fence, 1);
+		SDL_ReleaseGPUFence(device, upload_fence);
+
+		frame_offset += sizeof(Vertex) * vertices.size();
+	}
+
 	void UI::PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element& elem)
 	{
 		// UI Vertices

@@ -320,8 +320,7 @@ namespace BB3D
 		SDL_EndGPURenderPass(render_pass_models);
 
 		// Stage 3: UI Layer
-		UI_Element test = { test_font.atlas_texture, {50.0f, 50.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, 512, 512 };
-		ui_layer.PushElementToUIBuff(m_Device, ui_buff, test);
+		ui_layer.PushTextToUIBuff(m_Device, ui_buff, "HELLO JOSEPH", { 50.0f ,50.0f }, {0.98f, 0.87f, 0.67f, 1.0f}, test_font);
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(
 			cmd_buff,
@@ -337,11 +336,11 @@ namespace BB3D
 
 		SDL_GPUBufferBinding test_bind = { ui_buff, 0 };
 		SDL_BindGPUVertexBuffers(render_pass_ui, 0, &test_bind, 1);
-		SDL_GPUTextureSamplerBinding testtex_bind = { test.texture, m_Sampler };
+		SDL_GPUTextureSamplerBinding testtex_bind = { test_font.atlas_texture, m_Sampler };
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &testtex_bind, 1);
 
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(proj_ui), sizeof(proj_ui));
-		SDL_DrawGPUPrimitives(render_pass_ui, 6, 1, 0, 0);
+		SDL_DrawGPUPrimitives(render_pass_ui, 72, 1, 0, 0);
 
 
 		SDL_EndGPURenderPass(render_pass_ui);

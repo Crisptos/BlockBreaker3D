@@ -47,9 +47,9 @@ namespace BB3D
 			new_atlas.glyph_metadata[c] = { 
 				{face->glyph->bitmap.width, face->glyph->bitmap.rows}, 
 				{face->glyph->bitmap_left, face->glyph->bitmap_top},
-				static_cast<unsigned int>(face->glyph->advance.x) // TODO keep an eye on this
+				static_cast<unsigned int>(face->glyph->advance.x >> 6) // bitshift by 6 is equivelant to dividing by 64
 			};
-
+			
 			// BMP Processing
 			size_t col = glyph_count % 8;
 			size_t row = glyph_count / 8;
