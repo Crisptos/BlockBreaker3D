@@ -24,6 +24,8 @@ namespace BB3D
 		vertices.reserve(6 * text_field.size());
 		unsigned int text_advance = 0;
 
+		float baseline = pos.y;
+
 		// For each char, add a quad with the correct precomputed UV's
 		for (char& c : text_field)
 		{ 
@@ -33,33 +35,38 @@ namespace BB3D
 			// Atlas is from 32 - 90 ASCII
 			// Char - 31 = Num in 1d
 
+			float final_x = pos.x + text_advance;
+			float final_y = baseline - c_props.bearing.y;
+			float w = 64.0f;
+			float h = 64.0f;
+
 			int offset = (c - 32);
 
 			float v_column = std::floorf(offset / 8.0f) * (1.0f / 8.0f);
 			float u_row = (offset % 8) * (1.0f / 8.0f);
 			
 
-			vertices.push_back({ pos.x + c_props.size.x + text_advance, pos.y,																		// tr 0
+			vertices.push_back({ final_x + w, final_y,															// tr 0
 								 u_row + 0.125f, v_column,
 								 color[0], color[1], color[2], color[3] 
 			});
-			vertices.push_back({ pos.x + c_props.size.x + text_advance, pos.y + c_props.size.y,														// br 1
+			vertices.push_back({ final_x + w, final_y + h,														// br 1
 								 u_row + 0.125f, v_column + 0.125f,
 								 color[0], color[1], color[2], color[3] 
 			});
-			vertices.push_back({ pos.x + text_advance, pos.y,																						// tl 3
+			vertices.push_back({ final_x, final_y,																// tl 3
 								 u_row, v_column,
 								 color[0], color[1], color[2], color[3] 
 			});										
-			vertices.push_back({ pos.x + c_props.size.x + text_advance, pos.y + c_props.size.y,														// br 1
+			vertices.push_back({ final_x + w, final_y + h,														// br 1
 								 u_row + 0.125f, v_column + 0.125f,
 								 color[0], color[1], color[2], color[3] 
 			});
-			vertices.push_back({ pos.x + text_advance, pos.y + c_props.size.y,																		// bl 2
+			vertices.push_back({ final_x, final_y + h,															// bl 2
 								 u_row, v_column + 0.125f,
 								 color[0], color[1], color[2], color[3] 
 			});
-			vertices.push_back({ pos.x + text_advance, pos.y,																						// tl 3
+			vertices.push_back({ final_x, final_y,																// tl 3
 								 u_row, v_column,
 								 color[0], color[1], color[2], color[3] 
 			});

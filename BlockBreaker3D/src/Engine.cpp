@@ -320,7 +320,7 @@ namespace BB3D
 		SDL_EndGPURenderPass(render_pass_models);
 
 		// Stage 3: UI Layer
-		ui_layer.PushTextToUIBuff(m_Device, ui_buff, "HELLO JOSEPH", { 50.0f ,50.0f }, {0.98f, 0.87f, 0.67f, 1.0f}, test_font);
+		ui_layer.PushTextToUIBuff(m_Device, ui_buff, "LEVEL-01 YAY! :D", { 50.0f ,50.0f }, {0.98f, 0.37f, 0.87f, 1.0f}, test_font);
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(
 			cmd_buff,
@@ -340,7 +340,7 @@ namespace BB3D
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &testtex_bind, 1);
 
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(proj_ui), sizeof(proj_ui));
-		SDL_DrawGPUPrimitives(render_pass_ui, 72, 1, 0, 0);
+		SDL_DrawGPUPrimitives(render_pass_ui, ui_layer.frame_offset / sizeof(Vertex), 1, 0, 0);
 
 
 		SDL_EndGPURenderPass(render_pass_ui);

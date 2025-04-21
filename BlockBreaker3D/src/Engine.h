@@ -120,6 +120,19 @@ namespace BB3D
 
 	SDL_GPUBuffer* CreateUILayerBuffer(SDL_GPUDevice* device);
 
+	// ________________________________ Scene.cpp ________________________________
+	enum SceneType : Uint8
+	{
+		MAIN_MENU,
+		OPTIONS,
+		GAMEPLAY
+	};
+	struct Scene
+	{
+		std::vector<Entity> scene_entities;
+		SceneType type;
+	};
+
 	// ________________________________ Main Engine Class ________________________________
 
 	class Engine
