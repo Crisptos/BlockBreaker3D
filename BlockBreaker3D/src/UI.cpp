@@ -16,18 +16,18 @@ namespace BB3D
 		return new_ui_buff;
 	}
 
-	void UI::PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, std::string text_field, glm::vec2 pos, glm::vec4 color, FontAtlas& atlas)
+	void UI::PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_TextField text_field, FontAtlas& atlas)
 	{
 		// UI Vertices
 		// X, Y, U, V, R, G, B, A
 		std::vector<Vertex> vertices;
-		vertices.reserve(6 * text_field.size());
+		vertices.reserve(6 * text_field.text.size());
 		unsigned int text_advance = 0;
 
-		float baseline = pos.y;
+		float baseline = text_field.pos.y;
 
 		// For each char, add a quad with the correct precomputed UV's
-		for (char& c : text_field)
+		for (char& c : text_field.text)
 		{ 
 			Glyph c_props = atlas.glyph_metadata[c];
 
@@ -35,7 +35,7 @@ namespace BB3D
 			// Atlas is from 32 - 90 ASCII
 			// Char - 31 = Num in 1d
 
-			float final_x = pos.x + text_advance;
+			float final_x = text_field.pos.x + text_advance;
 			float final_y = baseline - c_props.bearing.y;
 			float w = 64.0f;
 			float h = 64.0f;
@@ -48,27 +48,27 @@ namespace BB3D
 
 			vertices.push_back({ final_x + w, final_y,															// tr 0
 								 u_row + 0.125f, v_column,
-								 color[0], color[1], color[2], color[3] 
+								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 			vertices.push_back({ final_x + w, final_y + h,														// br 1
 								 u_row + 0.125f, v_column + 0.125f,
-								 color[0], color[1], color[2], color[3] 
+								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 			vertices.push_back({ final_x, final_y,																// tl 3
 								 u_row, v_column,
-								 color[0], color[1], color[2], color[3] 
+								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});										
 			vertices.push_back({ final_x + w, final_y + h,														// br 1
 								 u_row + 0.125f, v_column + 0.125f,
-								 color[0], color[1], color[2], color[3] 
+								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 			vertices.push_back({ final_x, final_y + h,															// bl 2
 								 u_row, v_column + 0.125f,
-								 color[0], color[1], color[2], color[3] 
+								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 			vertices.push_back({ final_x, final_y,																// tl 3
 								 u_row, v_column,
-								 color[0], color[1], color[2], color[3] 
+								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 
 			text_advance += c_props.advance;

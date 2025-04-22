@@ -12,6 +12,34 @@
 
 namespace BB3D
 {
+	// ENGINE DEFINES
+	enum TextureType : Uint8
+	{
+		GEM10 = 0x2,
+		GEM03 = 0x3,
+		METAL07 = 0x4
+	};
+
+	enum MeshType : Uint8
+	{
+		ICO = 0x0,
+		QUAD = 0x1,
+		SPHERE = 0x2
+	};
+
+	struct Timer
+	{
+		Uint64 last_frame;
+		Uint64 current_frame;
+		float elapsed_time;
+	};
+
+	struct InputState
+	{
+		bool current_keys[128];
+		bool prev_keys[128];
+	};
+
 	// OUTSIDE SOURCE FILES
 // ________________________________ Shader.cpp ________________________________
 	SDL_GPUShader* CreateShaderFromFile(
@@ -83,8 +111,8 @@ namespace BB3D
 	// ________________________________ Entity.cpp ________________________________
 	struct Entity
 	{
-		Mesh mesh;
-		SDL_GPUTexture* texture;
+		MeshType mesh_type;
+		TextureType texture_type;
 
 		glm::mat4 transform;
 
@@ -94,9 +122,11 @@ namespace BB3D
 
 		glm::vec3 velocity;
 
+		bool is_shaded;
+
 		void UpdateTransform();
 		glm::mat4 GetTransformMatrix();
-		void Draw(SDL_GPURenderPass* render_pass, SDL_GPUBufferBinding vbo_bind, SDL_GPUBufferBinding ibo_bind, SDL_GPUTextureSamplerBinding tex_bind);
+		void Draw(SDL_GPURenderPass* render_pass, SDL_GPUBufferBinding vbo_bind, SDL_GPUBufferBinding ibo_bind, SDL_GPUTextureSamplerBinding tex_bind, int ind_count);
 	};
 
 	// ________________________________ UI.cpp ________________________________
@@ -109,28 +139,59 @@ namespace BB3D
 		int width, height;
 	};
 
+	struct UI_TextField
+	{
+		std::string text;
+		glm::vec2 pos;
+		glm::vec4 color;
+	};
+
 	struct UI
 	{
 		unsigned int frame_offset = 0; // 1 vertex + 32 bytes
 		
-		void PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, std::string text_field, glm::vec2 pos, glm::vec4 color, FontAtlas& atlas);
+		void PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_TextField text_field, FontAtlas& atlas);
 		void PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element& elem);
 		void FlushUIBuff(SDL_GPUDevice* device);
 	};
 
 	SDL_GPUBuffer* CreateUILayerBuffer(SDL_GPUDevice* device);
 
-	// ________________________________ Scene.cpp ________________________________
+	// ________________________________ Scenes.cpp ________________________________
 	enum SceneType : Uint8
 	{
 		MAIN_MENU,
 		OPTIONS,
 		GAMEPLAY
 	};
-	struct Scene
+
+	class IScene
 	{
-		std::vector<Entity> scene_entities;
-		SceneType type;
+	public:
+		virtual void Update(InputState& input_state) = 0;
+		virtual std::vector<Entity>& GetSceneEntities() = 0;
+		virtual const std::vector<UI_Element>& GetSceneUIElems() const = 0;
+		virtual const std::vector<UI_TextField>& GetSceneUITextFields() const = 0;
+	};
+
+	class GameScene : public IScene
+	{
+	public:
+		GameScene();
+		~GameScene();
+
+		void Update(InputState& input_state) override;
+		std::vector<Entity>& GetSceneEntities() override;
+		const std::vector<UI_Element>& GetSceneUIElems() const override;
+		const std::vector<UI_TextField>& GetSceneUITextFields() const override;
+
+	private:
+		
+
+	private:
+		std::vector<Entity> m_GameEntities;
+		std::vector<UI_Element> m_GameElements;
+		std::vector<UI_TextField> m_GameTextfields;
 	};
 
 	// ________________________________ Main Engine Class ________________________________
@@ -150,6 +211,8 @@ namespace BB3D
 		// Runtime
 		void Update();
 		void Input();
+		void RecordKeyState(SDL_Keycode keycode, bool is_keydown);
+		void CopyPrevKeys();
 		void Render();
 
 		// Utility
@@ -160,15 +223,11 @@ namespace BB3D
 		// State
 		bool m_IsRunning = true;
 		bool m_IsIdle = false;
-		struct Timer
-		{
-			Uint64 last_frame;
-			Uint64 current_frame;
-			float elapsed_time;
-		} m_Timer;
+		Timer m_Timer;
+		InputState m_InputState;
 
 		Camera m_StaticCamera;
-		std::vector<Entity> game_entities;
+		GameScene TEST; // TODO REMOVE
 		UI ui_layer;
 
 		// SDL Context

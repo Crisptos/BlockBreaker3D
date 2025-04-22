@@ -78,10 +78,11 @@ namespace BB3D
 		{
 			if (!m_IsIdle)
 			{
+				Input();
 				Update();
 				Render();
-				Input();
 				UpdateDeltaTime();
+				CopyPrevKeys();
 			}
 		}
 	}
@@ -122,9 +123,7 @@ namespace BB3D
 
 	void Engine::Setup()
 	{
-
 		// Allocate storage
-		game_entities.reserve(16);
 		meshes.reserve(16);
 		textures.reserve(16);
 
@@ -203,10 +202,6 @@ namespace BB3D
 		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
 
 		ui_buff = CreateUILayerBuffer(m_Device);
-
-		// Entities TODO
-		game_entities.push_back( {meshes[2], textures[2], glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, -4.0f), glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(0.0f) });
-		game_entities.push_back( {meshes[1], textures[2], glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f), glm::vec3(0.0f), glm::vec3(5.0f, 1.0f, 5.0f), glm::vec3(0.0f) });
 		
 		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
@@ -221,11 +216,10 @@ namespace BB3D
 
 	void Engine::Update()
 	{
-		for (Entity& current_entity : game_entities)
+		for (Entity& current_entity : TEST.GetSceneEntities())
 		{
 			current_entity.UpdateTransform();
 		}
-
 	}
 
 	// ________________________________ Runtime ________________________________
@@ -302,7 +296,7 @@ namespace BB3D
 		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
 		glm::vec4 light_pos = origin * model2;
 
-		for (Entity& current_entity : game_entities)
+		for (Entity& current_entity : TEST.GetSceneEntities())
 		{
 			mvp = proj * m_StaticCamera.GetViewMatrix() * current_entity.GetTransformMatrix();
 			glm::mat4 v_ubo[2] = { current_entity.GetTransformMatrix(), mvp};
@@ -314,13 +308,13 @@ namespace BB3D
 				m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
 			};
 			SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
-			current_entity.Draw(render_pass_models, { current_entity.mesh.vbo, 0 }, { current_entity.mesh.ibo, 0 }, {current_entity.texture, m_Sampler});
+			current_entity.Draw(render_pass_models, { meshes[current_entity.mesh_type].vbo, 0}, { meshes[current_entity.mesh_type].ibo, 0}, { textures[current_entity.texture_type], m_Sampler}, meshes[current_entity.mesh_type].ind_count);
 		}
 
 		SDL_EndGPURenderPass(render_pass_models);
 
 		// Stage 3: UI Layer
-		ui_layer.PushTextToUIBuff(m_Device, ui_buff, "LEVEL-01 YAY! :D", { 50.0f ,50.0f }, {0.98f, 0.37f, 0.87f, 1.0f}, test_font);
+		ui_layer.PushTextToUIBuff(m_Device, ui_buff, { "LEVEL-01 YAY! :D", { 50.0f ,50.0f }, {0.98f, 0.37f, 0.87f, 1.0f} }, test_font);
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(
 			cmd_buff,
@@ -355,8 +349,8 @@ namespace BB3D
 
 	void Engine::Input()
 	{
+		// Free Camera code is debug only and will be gone at some point
 		// TODO Clean up Camera Code
-
 		float mouse_sensitivity = 0.3f;
 		float relx = 0.0f;
 		float rely = 0.0f;
@@ -376,6 +370,18 @@ namespace BB3D
 				{
 					relx = ev.motion.xrel;
 					rely = ev.motion.yrel;
+					break;
+				}
+
+				case SDL_EVENT_KEY_DOWN:
+				{
+					RecordKeyState(ev.key.key, true);
+					break;
+				}
+
+				case SDL_EVENT_KEY_UP:
+				{
+					RecordKeyState(ev.key.key, false);
 					break;
 				}
 			}
@@ -412,6 +418,20 @@ namespace BB3D
 			m_StaticCamera.pos += glm::normalize(glm::cross(m_StaticCamera.front, m_StaticCamera.up)) * camera_speed;
 		if (keys[SDL_SCANCODE_ESCAPE])
 			m_IsRunning = false;
+	}
+
+	void Engine::RecordKeyState(SDL_Keycode keycode, bool is_keydown)
+	{
+		if (keycode < 0 || keycode >= 128) 
+			return;
+
+		if (m_InputState.current_keys[keycode] != is_keydown)
+			m_InputState.current_keys[keycode] = is_keydown;
+	}
+
+	void Engine::CopyPrevKeys()
+	{
+		std::memcpy(m_InputState.prev_keys, m_InputState.current_keys, sizeof(m_InputState.current_keys));
 	}
 
 	void Engine::UpdateDeltaTime()
