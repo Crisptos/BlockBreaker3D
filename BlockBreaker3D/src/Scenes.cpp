@@ -11,17 +11,17 @@ namespace BB3D
 	// Game Implementation Scene
 
 	// ________________________________ GameScene ________________________________
-	GameScene::GameScene()
+	GameScene::GameScene(const char* filepath)
 	{
 		m_GameEntities.reserve(16);
 		m_GameElements.reserve(16);
 		m_GameTextfields.reserve(16);
 
 		// Parse scene data
-		std::ifstream scene_f("assets/scenes/gameplay.json");
+		std::ifstream scene_f(filepath);
 		if (!scene_f)
 		{
-			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to load scene json at: %s\n", "my filepath");
+			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to load scene json at: %s\n", filepath);
 			std::abort();
 		}
 
@@ -55,6 +55,15 @@ namespace BB3D
 		// Build UI Elems and push to list
 
 		// Build UI Textfields and push to list
+		for (const auto& loaded_text : scene_data["textfields"])
+		{
+			std::string text = loaded_text["text"];
+			glm::vec2 pos = { loaded_text["position"][0], loaded_text["position"][1]};
+			glm::vec4 color = { loaded_text["color"][0], loaded_text["color"][1], loaded_text["color"][2], loaded_text["color"][3]};
+
+			// MeshType | TextureType | Transform Matrix | Pos | Rot | Scale | Velocity | Apply Shading?
+			m_GameTextfields.push_back({ text, pos, color });
+		}
 
 		// Camera Setup
 		m_SceneCam.pos = glm::vec3(0.0f, 0.0f, 4.0f);

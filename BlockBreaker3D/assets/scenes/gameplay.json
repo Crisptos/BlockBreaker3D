@@ -17,5 +17,13 @@
       "scale": [ 5.0, 1.0, 5.0 ],
       "is_shaded": true
     }
+  ],
+
+  "textfields": [
+    {
+      "text": "Level-01",
+      "position": [ 50.0, 50.0 ],
+      "color": [0.98, 0.37, 0.87, 1.0]
+    }
   ]
 }

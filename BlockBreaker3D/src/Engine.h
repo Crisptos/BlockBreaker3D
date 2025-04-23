@@ -154,7 +154,7 @@ namespace BB3D
 		unsigned int frame_offset = 0; // 1 vertex + 32 bytes
 		
 		void PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_TextField text_field, FontAtlas& atlas);
-		void PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element& elem);
+		void PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element elem);
 		void FlushUIBuff(SDL_GPUDevice* device);
 	};
 
@@ -181,7 +181,7 @@ namespace BB3D
 	class GameScene : public IScene
 	{
 	public:
-		GameScene();
+		GameScene(const char* filepath);
 		~GameScene();
 
 		void Update(InputState& input_state, float delta_time) override;
@@ -235,7 +235,6 @@ namespace BB3D
 
 		Camera m_StaticCamera;
 		std::vector<GameScene> scene_stack;
-		GameScene TEST; // TODO REMOVE
 		UI ui_layer;
 
 		// SDL Context

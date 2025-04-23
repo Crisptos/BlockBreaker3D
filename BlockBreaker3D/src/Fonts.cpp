@@ -1,7 +1,7 @@
 #include "Engine.h"
 
 #define FONT_CELL_SIZE 64
-#define ATLAS_RESOLUTION 512
+#define ATLAS_RESOLUTION 1024
 
 namespace BB3D
 {
@@ -21,7 +21,7 @@ namespace BB3D
 		FontAtlas new_atlas = {};
 		new_atlas.glyph_metadata.resize(126);
 
-		std::vector<Uint32> atlas_buffer(ATLAS_RESOLUTION * ATLAS_RESOLUTION); // 8 x 8 Font Cell Size
+		std::vector<Uint32> atlas_buffer(ATLAS_RESOLUTION * ATLAS_RESOLUTION); // 16 x 16 Font Cell Size
 
 		FT_Face face;
 		FT_Error err = FT_New_Face(ft, filepath, 0, &face);
@@ -34,7 +34,7 @@ namespace BB3D
 
 		int glyph_count = 0;
 
-		for (unsigned char c = 32; c < 91; c++)
+		for (unsigned char c = 32; c <= 122; c++)
 		{
 			err = FT_Load_Char(face, c, FT_LOAD_RENDER);
 			if (err)
@@ -51,8 +51,8 @@ namespace BB3D
 			};
 			
 			// BMP Processing
-			size_t col = glyph_count % 8;
-			size_t row = glyph_count / 8;
+			size_t col = glyph_count % 16;
+			size_t row = glyph_count / 16;
 
 			size_t x_offset = col * FONT_CELL_SIZE;
 			size_t y_offset = row * FONT_CELL_SIZE;
@@ -82,7 +82,7 @@ namespace BB3D
 
 		FT_Done_Face(face);
 
-		SDL_GPUTexture* new_atlas_tex = CreateAndLoadFontAtlasTextureToGPU(device, atlas_buffer.data(), {FONT_CELL_SIZE * 8, FONT_CELL_SIZE * 8, 1});
+		SDL_GPUTexture* new_atlas_tex = CreateAndLoadFontAtlasTextureToGPU(device, atlas_buffer.data(), {FONT_CELL_SIZE * 16, FONT_CELL_SIZE * 16, 1});
 
 		new_atlas.atlas_texture = new_atlas_tex;
 

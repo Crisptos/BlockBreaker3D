@@ -42,16 +42,16 @@ namespace BB3D
 
 			int offset = (c - 32);
 
-			float v_column = std::floorf(offset / 8.0f) * (1.0f / 8.0f);
-			float u_row = (offset % 8) * (1.0f / 8.0f);
+			float v_column = std::floorf(offset / 16.0f) * (1.0f / 16.0f);
+			float u_row = (offset % 16) * (1.0f / 16.0f);
 			
 
 			vertices.push_back({ final_x + w, final_y,															// tr 0
-								 u_row + 0.125f, v_column,
+								 u_row + 0.0625f, v_column,
 								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 			vertices.push_back({ final_x + w, final_y + h,														// br 1
-								 u_row + 0.125f, v_column + 0.125f,
+								 u_row + 0.0625f, v_column + 0.0625f,
 								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 			vertices.push_back({ final_x, final_y,																// tl 3
@@ -59,11 +59,11 @@ namespace BB3D
 								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});										
 			vertices.push_back({ final_x + w, final_y + h,														// br 1
-								 u_row + 0.125f, v_column + 0.125f,
+								 u_row + 0.0625f, v_column + 0.0625f,
 								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 			vertices.push_back({ final_x, final_y + h,															// bl 2
-								 u_row, v_column + 0.125f,
+								 u_row, v_column + 0.0625f,
 								 text_field.color[0], text_field.color[1], text_field.color[2], text_field.color[3]
 			});
 			vertices.push_back({ final_x, final_y,																// tl 3
@@ -114,7 +114,7 @@ namespace BB3D
 		frame_offset += sizeof(Vertex) * vertices.size();
 	}
 
-	void UI::PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element& elem)
+	void UI::PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element elem)
 	{
 		// UI Vertices
 		// X, Y, U, V, R, G, B, A
