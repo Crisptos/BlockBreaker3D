@@ -17,9 +17,6 @@ namespace BB3D
 
 	FontAtlas test_font;
 
-	float last_x = 0.0f;
-	float last_y = 0.0f;
-
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -123,6 +120,12 @@ namespace BB3D
 
 	void Engine::Setup()
 	{
+		// Reset Input State
+		std::memset(m_InputState.current_keys, 0, sizeof(m_InputState.current_keys));
+		std::memset(m_InputState.prev_keys, 0, sizeof(m_InputState.prev_keys));
+		m_InputState.relx = 0;
+		m_InputState.rely = 0;
+
 		// Allocate storage
 		meshes.reserve(16);
 		textures.reserve(16);
@@ -144,6 +147,7 @@ namespace BB3D
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png"));
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_03.png"));
 		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/paddle.png"));
 
 		test_font = CreateFontAtlasFromFile(m_Device, "assets/fonts/DejaVuSansMono.ttf");
 
@@ -151,6 +155,7 @@ namespace BB3D
 		meshes.push_back(LoadMeshFromFile(m_Device, "assets/ico.obj"));
 		meshes.push_back(LoadMeshFromFile(m_Device, "assets/quad.obj"));
 		meshes.push_back(LoadMeshFromFile(m_Device, "assets/sphere.obj"));
+		meshes.push_back(LoadMeshFromFile(m_Device, "assets/paddle.obj"));
 
 		// Load Shaders and Setup Pipelines
 		SDL_GPUShader* phong_vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
@@ -206,20 +211,11 @@ namespace BB3D
 		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
 		proj_ui = glm::ortho(0.0f, 1280.0f, 720.0f, 0.0f, -1.0f, 1.0f);
-
-		m_StaticCamera.pos = glm::vec3(0.0f, 0.0f, 4.0f);
-		m_StaticCamera.front = glm::vec3(0.0f, 0.0f, -1.0f);
-		m_StaticCamera.up = glm::vec3(0.0f, 1.0f, 0.0f);
-		m_StaticCamera.pitch = 0.0f;
-		m_StaticCamera.yaw = -80.0f;
 	}
 
 	void Engine::Update()
 	{
-		for (Entity& current_entity : TEST.GetSceneEntities())
-		{
-			current_entity.UpdateTransform();
-		}
+		TEST.Update(m_InputState, m_Timer.elapsed_time);
 	}
 
 	// ________________________________ Runtime ________________________________
@@ -264,7 +260,7 @@ namespace BB3D
 		SDL_GPUTextureSamplerBinding skybox_bind = { textures[SKYBOX_TEXTURE_IDX], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_skybox, 0, &skybox_bind, 1);
 		glm::mat4 vp_sky(1.0f);
-		glm::mat4 view_no_transform = glm::mat4(glm::mat3(m_StaticCamera.GetViewMatrix()));
+		glm::mat4 view_no_transform = glm::mat4(glm::mat3(TEST.GetSceneCamera().GetViewMatrix()));
 		vp_sky = proj * view_no_transform;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(vp_sky), sizeof(vp_sky));
 		SDL_DrawGPUPrimitives(render_pass_skybox, 36, 1, 0, 0);
@@ -286,26 +282,26 @@ namespace BB3D
 		// Stage 2: 3D Models
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsNoPhong);
 		model2 = glm::mat4(1.0f);
-		model2 = glm::translate(model2, glm::vec3(-2.0f, 1.0f, -2.0f));
-		model2 = glm::scale(model2, glm::vec3(0.5, 0.5, 0.5));
-		mvp = proj * m_StaticCamera.GetViewMatrix() * model2;
+		model2 = glm::translate(model2, glm::vec3(0.0f, 2.0f, 0.0f));
+		model2 = glm::scale(model2, glm::vec3(1.0f, 1.0f, 1.0f));
+		mvp = proj * TEST.GetSceneCamera().GetViewMatrix() * model2;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[2].ind_count, 1, 0, 0, 0);
 
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsPhong);
 		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
-		glm::vec4 light_pos = origin * model2;
+		glm::vec4 light_pos = model2 * origin;
 
 		for (Entity& current_entity : TEST.GetSceneEntities())
 		{
-			mvp = proj * m_StaticCamera.GetViewMatrix() * current_entity.GetTransformMatrix();
+			mvp = proj * TEST.GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();
 			glm::mat4 v_ubo[2] = { current_entity.GetTransformMatrix(), mvp};
 			SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo[0]), sizeof(v_ubo));
 			float f_ubo[16] = {
 				0.97f, 0.64f, 0.12f, 0.0f,
 				1.0f, 1.0f, 1.0f, 0.0f,
 				light_pos.x, light_pos.y, light_pos.z, 0.0f,
-				m_StaticCamera.pos.x, m_StaticCamera.pos.y, m_StaticCamera.pos.z, 0.0f
+				TEST.GetSceneCamera().pos.x, TEST.GetSceneCamera().pos.y, TEST.GetSceneCamera().pos.z, 0.0f
 			};
 			SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
 			current_entity.Draw(render_pass_models, { meshes[current_entity.mesh_type].vbo, 0}, { meshes[current_entity.mesh_type].ibo, 0}, { textures[current_entity.texture_type], m_Sampler}, meshes[current_entity.mesh_type].ind_count);
@@ -352,8 +348,8 @@ namespace BB3D
 		// Free Camera code is debug only and will be gone at some point
 		// TODO Clean up Camera Code
 		float mouse_sensitivity = 0.3f;
-		float relx = 0.0f;
-		float rely = 0.0f;
+		m_InputState.relx = 0;
+		m_InputState.rely = 0;
 
 		SDL_Event ev;
 		while (SDL_PollEvent(&ev))
@@ -368,55 +364,26 @@ namespace BB3D
 
 				case SDL_EVENT_MOUSE_MOTION:
 				{
-					relx = ev.motion.xrel;
-					rely = ev.motion.yrel;
+					m_InputState.relx = ev.motion.xrel * mouse_sensitivity;
+					m_InputState.rely = ev.motion.yrel * mouse_sensitivity;
 					break;
 				}
 
 				case SDL_EVENT_KEY_DOWN:
 				{
-					RecordKeyState(ev.key.key, true);
+					RecordKeyState(ev.key.scancode, true);
 					break;
 				}
 
 				case SDL_EVENT_KEY_UP:
 				{
-					RecordKeyState(ev.key.key, false);
+					RecordKeyState(ev.key.scancode, false);
 					break;
 				}
 			}
 		}
 
-		relx *= mouse_sensitivity;
-		rely *= mouse_sensitivity;
-
-		m_StaticCamera.yaw += relx;
-		m_StaticCamera.pitch -= rely;
-
-		if (m_StaticCamera.pitch > 89.0f)
-			m_StaticCamera.pitch = 89.0f;
-		if (m_StaticCamera.pitch < -89.0f)
-			m_StaticCamera.pitch = -89.0f;
-
-		glm::vec3 direction;
-		direction.x = cos(glm::radians(m_StaticCamera.yaw)) * cos(glm::radians(m_StaticCamera.pitch));
-		direction.y = sin(glm::radians(m_StaticCamera.pitch));
-		direction.z = sin(glm::radians(m_StaticCamera.yaw)) * cos(glm::radians(m_StaticCamera.pitch));
-		m_StaticCamera.front = glm::normalize(direction);
-
-		const bool* keys = SDL_GetKeyboardState(0);
-
-		const float camera_speed = 2.0f * m_Timer.elapsed_time;
-
-		if (keys[SDL_SCANCODE_W])
-			m_StaticCamera.pos += camera_speed * m_StaticCamera.front;
-		if(keys[SDL_SCANCODE_A])
-			m_StaticCamera.pos -= glm::normalize(glm::cross(m_StaticCamera.front, m_StaticCamera.up)) * camera_speed;
-		if(keys[SDL_SCANCODE_S])
-			m_StaticCamera.pos -= camera_speed * m_StaticCamera.front;
-		if(keys[SDL_SCANCODE_D])
-			m_StaticCamera.pos += glm::normalize(glm::cross(m_StaticCamera.front, m_StaticCamera.up)) * camera_speed;
-		if (keys[SDL_SCANCODE_ESCAPE])
+		if (m_InputState.current_keys[SDL_SCANCODE_ESCAPE])
 			m_IsRunning = false;
 	}
 

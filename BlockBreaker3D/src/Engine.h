@@ -17,14 +17,16 @@ namespace BB3D
 	{
 		GEM10 = 0x2,
 		GEM03 = 0x3,
-		METAL07 = 0x4
+		METAL07 = 0x4,
+		PADDLE01 = 0x5
 	};
 
 	enum MeshType : Uint8
 	{
 		ICO = 0x0,
 		QUAD = 0x1,
-		SPHERE = 0x2
+		SPHERE = 0x2,
+		PADDLE = 0x3
 	};
 
 	struct Timer
@@ -38,6 +40,7 @@ namespace BB3D
 	{
 		bool current_keys[128];
 		bool prev_keys[128];
+		float relx, rely;
 	};
 
 	// OUTSIDE SOURCE FILES
@@ -168,10 +171,11 @@ namespace BB3D
 	class IScene
 	{
 	public:
-		virtual void Update(InputState& input_state) = 0;
+		virtual void Update(InputState& input_state, float delta_time) = 0;
 		virtual std::vector<Entity>& GetSceneEntities() = 0;
-		virtual const std::vector<UI_Element>& GetSceneUIElems() const = 0;
-		virtual const std::vector<UI_TextField>& GetSceneUITextFields() const = 0;
+		virtual std::vector<UI_Element>& GetSceneUIElems() = 0;
+		virtual std::vector<UI_TextField>& GetSceneUITextFields() = 0;
+		virtual Camera GetSceneCamera() = 0;
 	};
 
 	class GameScene : public IScene
@@ -180,15 +184,18 @@ namespace BB3D
 		GameScene();
 		~GameScene();
 
-		void Update(InputState& input_state) override;
+		void Update(InputState& input_state, float delta_time) override;
 		std::vector<Entity>& GetSceneEntities() override;
-		const std::vector<UI_Element>& GetSceneUIElems() const override;
-		const std::vector<UI_TextField>& GetSceneUITextFields() const override;
+		std::vector<UI_Element>& GetSceneUIElems() override;
+		std::vector<UI_TextField>& GetSceneUITextFields() override;
+		Camera GetSceneCamera() override;
 
 	private:
 		
 
 	private:
+		Camera m_SceneCam;
+
 		std::vector<Entity> m_GameEntities;
 		std::vector<UI_Element> m_GameElements;
 		std::vector<UI_TextField> m_GameTextfields;
@@ -227,6 +234,7 @@ namespace BB3D
 		InputState m_InputState;
 
 		Camera m_StaticCamera;
+		std::vector<GameScene> scene_stack;
 		GameScene TEST; // TODO REMOVE
 		UI ui_layer;
 

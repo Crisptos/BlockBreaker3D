@@ -10,6 +10,7 @@
 - Assimp
 - FreeType
 - STB Image
+- nlohmann json
 
 ### Project Goals
 - [x] Basic 3D rendering of meshes
@@ -18,7 +19,7 @@
 - [x] Phong shading model
 - [x] Skybox and Cubemap samplers
 - [x] Batched UI Layer Rendering
-- [x] Font Rendering (WIP)
+- [x] Font Rendering
 - [ ] Custom 2D Physics (WIP)
 - [ ] Breakout Gameplay (WIP)
 - [ ] Custom Level Creation and Loading (WIP)
