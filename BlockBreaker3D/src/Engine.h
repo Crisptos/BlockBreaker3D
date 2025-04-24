@@ -149,6 +149,7 @@ namespace BB3D
 		std::string text;
 		glm::vec2 pos;
 		glm::vec4 color;
+		bool is_visible = true;
 	};
 
 	struct UI

@@ -23,7 +23,14 @@
     {
       "text": "Level-01",
       "position": [ 50.0, 50.0 ],
-      "color": [0.98, 0.37, 0.87, 1.0]
+      "color": [ 0.98, 0.37, 0.87, 1.0 ],
+      "is_visible": true
+    },
+    {
+      "text": "Debug Camera ON",
+      "position": [ 800.0, 50.0 ],
+      "color": [ 0.34, 0.87, 0.47, 1.0 ],
+      "is_visible":  false
     }
   ]
 }

@@ -2,10 +2,11 @@
 
 // GLSL pads vec3 to 16 bytes per std140, caused a fun lighting bug
 layout(set=3, binding = 0)uniform UBO {
-	vec3 object_color_base; float pad0;
-	vec3 incoming_light_color; float pad1;
-	vec3 light_pos; float pad2;
-	vec3 view_pos; float pad3;
+	vec3 object_color_base; float pad0;					   // 16 bytes
+	vec3 incoming_light_color; float pad1;                 // 16 bytes
+	vec3 view_pos; float pad2;							   // 16 bytes
+	int num_of_lights; float pad3; float pad4; float pad5; // 16 bytes
+	vec4 light_positions[32];							   // 512 bytes
 };
 
 layout(location = 0) in vec3 normal;
@@ -18,6 +19,8 @@ layout(set=2, binding=0) uniform sampler2D tex_sampler;
 
 void main()
 {
+	vec3 light_pos = vec3(light_positions[0].x, light_positions[0].y, light_positions[0].z);
+	
 	const float ambient_strength = 0.2;
 	vec3 ambient = incoming_light_color * ambient_strength * texture(tex_sampler, frag_uv).rgb;
 

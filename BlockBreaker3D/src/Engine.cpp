@@ -296,20 +296,29 @@ namespace BB3D
 		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[2].ind_count, 1, 0, 0, 0);
 
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsPhong);
+		glm::vec4 light_positions[32] = {glm::vec4(0.0f)};
 		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
 		glm::vec4 light_pos = model2 * origin;
+		light_positions[0] = light_pos;
 
 		for (Entity& current_entity : s_SceneStack.top()->GetSceneEntities())
 		{
 			mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();
 			glm::mat4 v_ubo[2] = { current_entity.GetTransformMatrix(), mvp};
 			SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo[0]), sizeof(v_ubo));
-			float f_ubo[16] = {
+			// object color | pad
+			// light color | pad
+			// view pos | pad
+			// num of lights | 3xpad
+			// light pos array of vec4
+			float f_ubo[144] = {
 				0.97f, 0.64f, 0.12f, 0.0f,
 				1.0f, 1.0f, 1.0f, 0.0f,
-				light_pos.x, light_pos.y, light_pos.z, 0.0f,
-				s_SceneStack.top()->GetSceneCamera().pos.x, s_SceneStack.top()->GetSceneCamera().pos.y, s_SceneStack.top()->GetSceneCamera().pos.z, 0.0f
+				s_SceneStack.top()->GetSceneCamera().pos.x, s_SceneStack.top()->GetSceneCamera().pos.y, s_SceneStack.top()->GetSceneCamera().pos.z, 0.0f,
+				1.0f, 0.0f, 0.0f, 0.0f
 			};
+			std::memcpy(f_ubo + 16, light_positions, sizeof(light_positions));
+
 			SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
 			current_entity.Draw(render_pass_models, { meshes[current_entity.mesh_type].vbo, 0}, { meshes[current_entity.mesh_type].ibo, 0}, { textures[current_entity.texture_type], m_Sampler}, meshes[current_entity.mesh_type].ind_count);
 		}
@@ -319,7 +328,8 @@ namespace BB3D
 		// Stage 3: UI Layer
 		for (UI_TextField text_field : s_SceneStack.top()->GetSceneUITextFields())
 		{
-			ui_layer.PushTextToUIBuff(s_Device, ui_buff, text_field, test_font);
+			if(text_field.is_visible)
+				ui_layer.PushTextToUIBuff(s_Device, ui_buff, text_field, test_font);
 		}
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(

@@ -61,9 +61,10 @@ namespace BB3D
 			std::string text = loaded_text["text"];
 			glm::vec2 pos = { loaded_text["position"][0], loaded_text["position"][1] };
 			glm::vec4 color = { loaded_text["color"][0], loaded_text["color"][1], loaded_text["color"][2], loaded_text["color"][3] };
+			bool is_visible = loaded_text["is_visible"];
 
 			// MeshType | TextureType | Transform Matrix | Pos | Rot | Scale | Velocity | Apply Shading?
-			m_SceneTextfields.push_back({ text, pos, color });
+			m_SceneTextfields.push_back({ text, pos, color, is_visible });
 		}
 
 		// Camera Setup
@@ -152,11 +153,14 @@ namespace BB3D
 		if (input_state.current_keys[SDL_SCANCODE_EQUALS] && !input_state.prev_keys[SDL_SCANCODE_EQUALS])
 		{
 			is_dbg = true;
+			// TODO improve this
+			m_SceneTextfields[1].is_visible = true;
 		}
 
 		if (input_state.current_keys[SDL_SCANCODE_MINUS] && !input_state.prev_keys[SDL_SCANCODE_MINUS])
 		{
 			is_dbg = false;
+			m_SceneTextfields[1].is_visible = false;
 		}
 
 		for (Entity& current_entity : m_SceneEntities)
