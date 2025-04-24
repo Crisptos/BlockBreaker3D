@@ -53,13 +53,11 @@ void main()
 	vec3 view_dir = normalize(view_pos - frag_pos);
 	int num_of_lights_for = int(num_of_lights);
 
-	vec3 light_pos = vec3(light_positions[0].x, light_positions[0].y, light_positions[0].z);
-	vec3 result = calc_point_light(light_pos, normal, frag_pos, view_dir);
-
-	for(int i = 0; i < num_of_lights_for; i++)
+	vec3 result = vec3(0.0f);
+	for(int i = 0; i < num_of_lights_for; i+=1)
 	{
-		//vec3 light_pos = vec3(light_positions[i].x, light_positions[i].y, light_positions[i].z);
-		//result += calc_point_light(light_pos, normal, frag_pos, view_dir);
+		vec3 light_pos = vec3(light_positions[i].x, light_positions[i].y, light_positions[i].z);
+		result += calc_point_light(light_pos, normal, frag_pos, view_dir);
 	}
 
 	final_color = vec4(result, 1.0);

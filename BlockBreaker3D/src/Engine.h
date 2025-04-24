@@ -7,6 +7,7 @@
 #include <array>
 #include <string>
 #include <memory>
+#include <functional>
 #include "Camera.h"
 
 #define DEPTH_TEXTURE_IDX 0

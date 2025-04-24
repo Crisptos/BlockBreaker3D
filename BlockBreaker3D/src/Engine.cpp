@@ -14,6 +14,7 @@ namespace BB3D
 	glm::mat4 mvp(1.0f);
 
 	glm::mat4 model2(1.0f);
+	glm::mat4 model3(1.0f);
 
 	FontAtlas test_font;
 
@@ -287,22 +288,32 @@ namespace BB3D
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &tex_bind, 1);
 
 		// Stage 2: 3D Models
+
+		// Light Sources
+		glm::vec4 light_positions[32] = { glm::vec4(0.0f) };
+		glm::vec4 origin = { 0.0f, 0.0f, 0.0f, 1.0f };
+		int light_count = 0;
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsNoPhong);
-		model2 = glm::mat4(1.0f);
-		model2 = glm::translate(model2, glm::vec3(0.0f, 2.0f, 0.0f));
-		model2 = glm::scale(model2, glm::vec3(1.0f, 1.0f, 1.0f));
-		mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * model2;
-		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
-		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[2].ind_count, 1, 0, 0, 0);
-
-		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsPhong);
-		glm::vec4 light_positions[32] = {glm::vec4(0.0f)};
-		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
-		glm::vec4 light_pos = model2 * origin;
-		light_positions[0] = light_pos;
-
 		for (Entity& current_entity : s_SceneStack.top()->GetSceneEntities())
 		{
+			if (current_entity.is_shaded)
+				continue;
+
+			mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();
+			SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
+			current_entity.Draw(render_pass_models, { meshes[current_entity.mesh_type].vbo, 0 }, { meshes[current_entity.mesh_type].ibo, 0 }, { textures[current_entity.texture_type], m_Sampler }, meshes[current_entity.mesh_type].ind_count);
+			light_positions[light_count] = current_entity.GetTransformMatrix() * origin;
+			light_count++;
+		}
+
+		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsPhong);
+
+		// Shaded Objects
+		for (Entity& current_entity : s_SceneStack.top()->GetSceneEntities())
+		{
+			if (!current_entity.is_shaded)
+				continue;
+
 			mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();
 			glm::mat4 v_ubo[2] = { current_entity.GetTransformMatrix(), mvp};
 			SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo[0]), sizeof(v_ubo));
@@ -315,7 +326,7 @@ namespace BB3D
 				0.97f, 0.64f, 0.12f, 0.0f,
 				1.0f, 1.0f, 1.0f, 0.0f,
 				s_SceneStack.top()->GetSceneCamera().pos.x, s_SceneStack.top()->GetSceneCamera().pos.y, s_SceneStack.top()->GetSceneCamera().pos.z, 0.0f,
-				1.0f, 0.0f, 0.0f, 0.0f
+				static_cast<float>(light_count), 0.0f, 0.0f, 0.0f
 			};
 			std::memcpy(f_ubo + 16, light_positions, sizeof(light_positions));
 
