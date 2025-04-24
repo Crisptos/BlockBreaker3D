@@ -3,8 +3,10 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include <vector>
+#include <stack>
 #include <array>
 #include <string>
+#include <memory>
 #include "Camera.h"
 
 #define DEPTH_TEXTURE_IDX 0
@@ -103,7 +105,7 @@ namespace BB3D
 
 	struct FontAtlas
 	{
-		SDL_GPUTexture* atlas_texture;
+		SDL_GPUTexture* atlas_texture = nullptr;
 		std::vector<Glyph> glyph_metadata;
 	};
 
@@ -164,41 +166,46 @@ namespace BB3D
 	enum SceneType : Uint8
 	{
 		MAIN_MENU,
-		OPTIONS,
 		GAMEPLAY
 	};
 
-	class IScene
+	class Scene
 	{
 	public:
+		Scene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
+
 		virtual void Update(InputState& input_state, float delta_time) = 0;
-		virtual std::vector<Entity>& GetSceneEntities() = 0;
-		virtual std::vector<UI_Element>& GetSceneUIElems() = 0;
-		virtual std::vector<UI_TextField>& GetSceneUITextFields() = 0;
-		virtual Camera GetSceneCamera() = 0;
+		std::vector<Entity>& GetSceneEntities();
+		std::vector<UI_Element>& GetSceneUIElems();
+		std::vector<UI_TextField>& GetSceneUITextFields();
+		Camera GetSceneCamera();
+
+	protected:
+		Camera m_SceneCam;
+
+		std::vector<Entity> m_SceneEntities;
+		std::vector<UI_Element> m_SceneElements;
+		std::vector<UI_TextField> m_SceneTextfields;
+
+		std::function<void(SceneType)> m_TransToCallback;
 	};
 
-	class GameScene : public IScene
+	class MenuScene : public Scene
 	{
 	public:
-		GameScene(const char* filepath);
+		MenuScene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
+		~MenuScene();
+
+		void Update(InputState& input_state, float delta_time) override;
+	};
+
+	class GameScene : public Scene
+	{
+	public:
+		GameScene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
 		~GameScene();
 
 		void Update(InputState& input_state, float delta_time) override;
-		std::vector<Entity>& GetSceneEntities() override;
-		std::vector<UI_Element>& GetSceneUIElems() override;
-		std::vector<UI_TextField>& GetSceneUITextFields() override;
-		Camera GetSceneCamera() override;
-
-	private:
-		
-
-	private:
-		Camera m_SceneCam;
-
-		std::vector<Entity> m_GameEntities;
-		std::vector<UI_Element> m_GameElements;
-		std::vector<UI_TextField> m_GameTextfields;
 	};
 
 	// ________________________________ Main Engine Class ________________________________
@@ -218,28 +225,26 @@ namespace BB3D
 		// Runtime
 		void Update();
 		void Input();
-		void RecordKeyState(SDL_Keycode keycode, bool is_keydown);
-		void CopyPrevKeys();
 		void Render();
 
 		// Utility
+		static void SceneTransToCallback(SceneType type);
+		void RecordKeyState(SDL_Keycode keycode, bool is_keydown);
+		void CopyPrevKeys();
 		void UpdateDeltaTime();
 		
 	private:
-
 		// State
 		bool m_IsRunning = true;
 		bool m_IsIdle = false;
 		Timer m_Timer;
 		InputState m_InputState;
-
-		Camera m_StaticCamera;
-		std::vector<GameScene> scene_stack;
+		static std::stack<std::unique_ptr<Scene>> s_SceneStack;
 		UI ui_layer;
 
 		// SDL Context
-		SDL_Window* m_Window;
-		SDL_GPUDevice* m_Device;
+		static SDL_Window* s_Window;
+		static SDL_GPUDevice* s_Device;
 
 		//	Renderer State
 		SDL_GPUGraphicsPipeline* m_PipelineSkybox;

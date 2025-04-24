@@ -17,6 +17,11 @@ namespace BB3D
 
 	FontAtlas test_font;
 
+	// Engine Static Globals
+	SDL_Window* Engine::s_Window;
+	SDL_GPUDevice* Engine::s_Device;
+	std::stack<std::unique_ptr<Scene>> Engine::s_SceneStack;
+
 	// ________________________________ Engine Lifetime ________________________________
 
 	void Engine::Init()
@@ -27,35 +32,33 @@ namespace BB3D
 			std::abort();
 		}
 
-		m_Window = SDL_CreateWindow(
+		s_Window = SDL_CreateWindow(
 			"Block Breaker 3D",
 			1280,
 			720,
 			SDL_WINDOW_VULKAN
 		);
 
-		if (!m_Window)
+		if (!s_Window)
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to initialize window: %s\n", SDL_GetError());
 			std::abort();
 		}
 
-		SDL_SetWindowPosition(m_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-		SDL_SetWindowResizable(m_Window, false);
-		SDL_HideCursor();
-		SDL_SetWindowRelativeMouseMode(m_Window, true);
+		SDL_SetWindowPosition(s_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		SDL_SetWindowResizable(s_Window, false);
 
-		m_Device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
+		s_Device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV, true, nullptr);
 
-		if (!m_Device)
+		if (!s_Device)
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to acquire a handle to the GPU: %s\n", SDL_GetError());
 			std::abort();
 		}
 
-		SDL_Log("OK: Created GPU handle with driver: %s\n", SDL_GetGPUDeviceDriver(m_Device));
+		SDL_Log("OK: Created GPU handle with driver: %s\n", SDL_GetGPUDeviceDriver(s_Device));
 
-		if (!SDL_ClaimWindowForGPUDevice(m_Device, m_Window))
+		if (!SDL_ClaimWindowForGPUDevice(s_Device, s_Window))
 		{
 			SDL_LogCritical(SDL_LOG_CATEGORY_ERROR, "Failed to claim window for device: %s\n", SDL_GetError());
 			std::abort();
@@ -90,29 +93,29 @@ namespace BB3D
 		DestroyFreeType();
 
 		// Dispose of all textures and meshes
-		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsNoPhong);
-		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineModelsPhong);
-		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineSkybox);
-		SDL_ReleaseGPUGraphicsPipeline(m_Device, m_PipelineUI);
+		SDL_ReleaseGPUGraphicsPipeline(s_Device, m_PipelineModelsNoPhong);
+		SDL_ReleaseGPUGraphicsPipeline(s_Device, m_PipelineModelsPhong);
+		SDL_ReleaseGPUGraphicsPipeline(s_Device, m_PipelineSkybox);
+		SDL_ReleaseGPUGraphicsPipeline(s_Device, m_PipelineUI);
 
 		for (Mesh& disposed_mesh : meshes)
 		{
-			SDL_ReleaseGPUBuffer(m_Device, disposed_mesh.vbo);
-			SDL_ReleaseGPUBuffer(m_Device, disposed_mesh.ibo);
+			SDL_ReleaseGPUBuffer(s_Device, disposed_mesh.vbo);
+			SDL_ReleaseGPUBuffer(s_Device, disposed_mesh.ibo);
 		}
 
-		SDL_ReleaseGPUBuffer(m_Device, ui_buff);
+		SDL_ReleaseGPUBuffer(s_Device, ui_buff);
 
 		for (SDL_GPUTexture* disposed_texture : textures)
 		{
-			SDL_ReleaseGPUTexture(m_Device, disposed_texture);
+			SDL_ReleaseGPUTexture(s_Device, disposed_texture);
 		}
-		SDL_ReleaseGPUTexture(m_Device, test_font.atlas_texture);
-		SDL_ReleaseGPUSampler(m_Device, m_Sampler);
+		SDL_ReleaseGPUTexture(s_Device, test_font.atlas_texture);
+		SDL_ReleaseGPUSampler(s_Device, m_Sampler);
 
-		SDL_ReleaseWindowFromGPUDevice(m_Device, m_Window);
-		SDL_DestroyWindow(m_Window);
-		SDL_DestroyGPUDevice(m_Device);
+		SDL_ReleaseWindowFromGPUDevice(s_Device, s_Window);
+		SDL_DestroyWindow(s_Window);
+		SDL_DestroyGPUDevice(s_Device);
 		SDL_Quit();
 	}
 
@@ -129,13 +132,12 @@ namespace BB3D
 		// Allocate storage
 		meshes.reserve(16);
 		textures.reserve(16);
-		scene_stack.reserve(4);
 
 		// Load Textures
 		// DEPTH TEXTURE IS ALWAYS IDX 0, SKYBOX TEXTURE IS ALWAYS IDX 1
-		textures.push_back(CreateDepthTestTexture(m_Device, 1280, 720));
+		textures.push_back(CreateDepthTestTexture(s_Device, 1280, 720));
 		textures.push_back(CreateAndLoadCubeMapToGPU(
-			m_Device,
+			s_Device,
 			{
 				"assets/skyboxes/space/space_right.png",
 				"assets/skyboxes/space/space_left.png",
@@ -145,73 +147,73 @@ namespace BB3D
 				"assets/skyboxes/space/space_back.png"
 			}
 		));
-		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_10.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/gem_03.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/metal_07.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(m_Device, "assets/paddle.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/gem_10.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/gem_03.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/metal_07.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/paddle.png"));
 
-		test_font = CreateFontAtlasFromFile(m_Device, "assets/fonts/DejaVuSansMono.ttf");
+		test_font = CreateFontAtlasFromFile(s_Device, "assets/fonts/DejaVuSansMono.ttf");
 
 		// Load Meshes
-		meshes.push_back(LoadMeshFromFile(m_Device, "assets/ico.obj"));
-		meshes.push_back(LoadMeshFromFile(m_Device, "assets/quad.obj"));
-		meshes.push_back(LoadMeshFromFile(m_Device, "assets/sphere.obj"));
-		meshes.push_back(LoadMeshFromFile(m_Device, "assets/paddle.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/ico.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/quad.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/sphere.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/paddle.obj"));
 
 		// Load Shaders and Setup Pipelines
-		SDL_GPUShader* phong_vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* phong_frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1, 0, 0);
-		SDL_GPUShader* no_phong_vert_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-no-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* no_phong_frag_shader_model = CreateShaderFromFile(m_Device, "Shaders/model-no-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
-		SDL_GPUShader* skybox_vert_shader = CreateShaderFromFile(m_Device, "Shaders/skybox.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* skybox_frag_shader = CreateShaderFromFile(m_Device, "Shaders/skybox.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
-		SDL_GPUShader* ui_vert_shader = CreateShaderFromFile(m_Device, "Shaders/ui.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
-		SDL_GPUShader* ui_frag_shader = CreateShaderFromFile(m_Device, "Shaders/ui.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+		SDL_GPUShader* phong_vert_shader_model = CreateShaderFromFile(s_Device, "Shaders/model-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* phong_frag_shader_model = CreateShaderFromFile(s_Device, "Shaders/model-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 1, 0, 0);
+		SDL_GPUShader* no_phong_vert_shader_model = CreateShaderFromFile(s_Device, "Shaders/model-no-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* no_phong_frag_shader_model = CreateShaderFromFile(s_Device, "Shaders/model-no-phong.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+		SDL_GPUShader* skybox_vert_shader = CreateShaderFromFile(s_Device, "Shaders/skybox.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* skybox_frag_shader = CreateShaderFromFile(s_Device, "Shaders/skybox.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
+		SDL_GPUShader* ui_vert_shader = CreateShaderFromFile(s_Device, "Shaders/ui.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
+		SDL_GPUShader* ui_frag_shader = CreateShaderFromFile(s_Device, "Shaders/ui.frag.spv", SDL_GPU_SHADERSTAGE_FRAGMENT, 1, 0, 0, 0);
 
 		m_PipelineModelsPhong = CreateGraphicsPipelineForModels(
-			m_Device, 
-			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			s_Device, 
+			SDL_GetGPUSwapchainTextureFormat(s_Device, s_Window),
 			phong_vert_shader_model,
 			phong_frag_shader_model
 		);
 
 		m_PipelineModelsNoPhong = CreateGraphicsPipelineForModels(
-			m_Device,
-			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			s_Device,
+			SDL_GetGPUSwapchainTextureFormat(s_Device, s_Window),
 			no_phong_vert_shader_model,
 			no_phong_frag_shader_model
 		);
 
 		m_PipelineSkybox = CreateGraphicsPipelineForSkybox(
-			m_Device,
-			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			s_Device,
+			SDL_GetGPUSwapchainTextureFormat(s_Device, s_Window),
 			skybox_vert_shader,
 			skybox_frag_shader
 		);
 
 		m_PipelineUI = CreateGraphicsPipelineForUI(
-			m_Device,
-			SDL_GetGPUSwapchainTextureFormat(m_Device, m_Window),
+			s_Device,
+			SDL_GetGPUSwapchainTextureFormat(s_Device, s_Window),
 			ui_vert_shader,
 			ui_frag_shader
 		);
 
-		SDL_ReleaseGPUShader(m_Device, phong_vert_shader_model);
-		SDL_ReleaseGPUShader(m_Device, phong_frag_shader_model);
-		SDL_ReleaseGPUShader(m_Device, no_phong_frag_shader_model);
-		SDL_ReleaseGPUShader(m_Device, no_phong_vert_shader_model);
-		SDL_ReleaseGPUShader(m_Device, skybox_vert_shader);
-		SDL_ReleaseGPUShader(m_Device, skybox_frag_shader);
-		SDL_ReleaseGPUShader(m_Device, ui_vert_shader);
-		SDL_ReleaseGPUShader(m_Device, ui_frag_shader);
+		SDL_ReleaseGPUShader(s_Device, phong_vert_shader_model);
+		SDL_ReleaseGPUShader(s_Device, phong_frag_shader_model);
+		SDL_ReleaseGPUShader(s_Device, no_phong_frag_shader_model);
+		SDL_ReleaseGPUShader(s_Device, no_phong_vert_shader_model);
+		SDL_ReleaseGPUShader(s_Device, skybox_vert_shader);
+		SDL_ReleaseGPUShader(s_Device, skybox_frag_shader);
+		SDL_ReleaseGPUShader(s_Device, ui_vert_shader);
+		SDL_ReleaseGPUShader(s_Device, ui_frag_shader);
 
-		m_Sampler = CreateSampler(m_Device, SDL_GPU_FILTER_NEAREST);
+		m_Sampler = CreateSampler(s_Device, SDL_GPU_FILTER_NEAREST);
 
-		ui_buff = CreateUILayerBuffer(m_Device);
+		ui_buff = CreateUILayerBuffer(s_Device);
 
 		// Scene Initialization
 		// TODO harcode gamescene as idx 0
-		scene_stack.push_back(GameScene("assets/scenes/gameplay.json"));
+		s_SceneStack.push(std::make_unique<MenuScene>("assets/scenes/mainmenu.json", SceneTransToCallback));
 		
 		// Uniform data
 		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
@@ -220,18 +222,18 @@ namespace BB3D
 
 	void Engine::Update()
 	{
-		scene_stack[0].Update(m_InputState, m_Timer.elapsed_time);
+		s_SceneStack.top()->Update(m_InputState, m_Timer.elapsed_time);
 	}
 
 	// ________________________________ Runtime ________________________________
 	void Engine::Render()
 	{
-		SDL_GPUCommandBuffer* cmd_buff = SDL_AcquireGPUCommandBuffer(m_Device);
+		SDL_GPUCommandBuffer* cmd_buff = SDL_AcquireGPUCommandBuffer(s_Device);
 
 		SDL_GPUTexture* swapchain_tex;
 		if (!SDL_WaitAndAcquireGPUSwapchainTexture(
 			cmd_buff, 
-			m_Window, 
+			s_Window, 
 			&swapchain_tex, 
 			nullptr, 
 			nullptr
@@ -265,7 +267,7 @@ namespace BB3D
 		SDL_GPUTextureSamplerBinding skybox_bind = { textures[SKYBOX_TEXTURE_IDX], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_skybox, 0, &skybox_bind, 1);
 		glm::mat4 vp_sky(1.0f);
-		glm::mat4 view_no_transform = glm::mat4(glm::mat3(scene_stack[0].GetSceneCamera().GetViewMatrix()));
+		glm::mat4 view_no_transform = glm::mat4(glm::mat3(s_SceneStack.top()->GetSceneCamera().GetViewMatrix()));
 		vp_sky = proj * view_no_transform;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(vp_sky), sizeof(vp_sky));
 		SDL_DrawGPUPrimitives(render_pass_skybox, 36, 1, 0, 0);
@@ -289,7 +291,7 @@ namespace BB3D
 		model2 = glm::mat4(1.0f);
 		model2 = glm::translate(model2, glm::vec3(0.0f, 2.0f, 0.0f));
 		model2 = glm::scale(model2, glm::vec3(1.0f, 1.0f, 1.0f));
-		mvp = proj * scene_stack[0].GetSceneCamera().GetViewMatrix() * model2;
+		mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * model2;
 		SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
 		SDL_DrawGPUIndexedPrimitives(render_pass_models, meshes[2].ind_count, 1, 0, 0, 0);
 
@@ -297,16 +299,16 @@ namespace BB3D
 		glm::vec4 origin = {0.0f, 0.0f, 0.0f, 1.0f};
 		glm::vec4 light_pos = model2 * origin;
 
-		for (Entity& current_entity : scene_stack[0].GetSceneEntities())
+		for (Entity& current_entity : s_SceneStack.top()->GetSceneEntities())
 		{
-			mvp = proj * scene_stack[0].GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();
+			mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();
 			glm::mat4 v_ubo[2] = { current_entity.GetTransformMatrix(), mvp};
 			SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(v_ubo[0]), sizeof(v_ubo));
 			float f_ubo[16] = {
 				0.97f, 0.64f, 0.12f, 0.0f,
 				1.0f, 1.0f, 1.0f, 0.0f,
 				light_pos.x, light_pos.y, light_pos.z, 0.0f,
-				scene_stack[0].GetSceneCamera().pos.x, scene_stack[0].GetSceneCamera().pos.y, scene_stack[0].GetSceneCamera().pos.z, 0.0f
+				s_SceneStack.top()->GetSceneCamera().pos.x, s_SceneStack.top()->GetSceneCamera().pos.y, s_SceneStack.top()->GetSceneCamera().pos.z, 0.0f
 			};
 			SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
 			current_entity.Draw(render_pass_models, { meshes[current_entity.mesh_type].vbo, 0}, { meshes[current_entity.mesh_type].ibo, 0}, { textures[current_entity.texture_type], m_Sampler}, meshes[current_entity.mesh_type].ind_count);
@@ -315,9 +317,9 @@ namespace BB3D
 		SDL_EndGPURenderPass(render_pass_models);
 
 		// Stage 3: UI Layer
-		for (UI_TextField text_field : scene_stack[0].GetSceneUITextFields())
+		for (UI_TextField text_field : s_SceneStack.top()->GetSceneUITextFields())
 		{
-			ui_layer.PushTextToUIBuff(m_Device, ui_buff, text_field, test_font);
+			ui_layer.PushTextToUIBuff(s_Device, ui_buff, text_field, test_font);
 		}
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(
@@ -342,7 +344,7 @@ namespace BB3D
 
 
 		SDL_EndGPURenderPass(render_pass_ui);
-		ui_layer.FlushUIBuff(m_Device);
+		ui_layer.FlushUIBuff(s_Device);
 
 		if (!SDL_SubmitGPUCommandBuffer(cmd_buff))
 		{
@@ -393,6 +395,26 @@ namespace BB3D
 
 		if (m_InputState.current_keys[SDL_SCANCODE_ESCAPE])
 			m_IsRunning = false;
+	}
+
+	void Engine::SceneTransToCallback(SceneType type)
+	{
+		switch (type)
+		{
+			case SceneType::MAIN_MENU:
+			{
+				SDL_ShowCursor();
+				SDL_SetWindowRelativeMouseMode(s_Window, false);
+			}
+
+			case SceneType::GAMEPLAY:
+			{
+				SDL_HideCursor();
+				SDL_SetWindowRelativeMouseMode(s_Window, true);
+				s_SceneStack.push(std::make_unique<GameScene>("assets/scenes/gameplay.json", SceneTransToCallback));
+				
+			}
+		}
 	}
 
 	void Engine::RecordKeyState(SDL_Keycode keycode, bool is_keydown)
