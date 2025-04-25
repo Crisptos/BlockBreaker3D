@@ -57,7 +57,7 @@ void main()
 	for(int i = 0; i < num_of_lights_for; i+=1)
 	{
 		vec3 light_pos = vec3(light_positions[i].x, light_positions[i].y, light_positions[i].z);
-		result += calc_point_light(light_pos, normal, frag_pos, view_dir);
+		result += calc_point_light(light_pos, normalize(normal), frag_pos, view_dir);
 	}
 
 	final_color = vec4(result, 1.0);

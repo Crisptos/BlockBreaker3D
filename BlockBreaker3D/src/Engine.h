@@ -21,7 +21,8 @@ namespace BB3D
 		GEM10 = 0x2,
 		GEM03 = 0x3,
 		METAL07 = 0x4,
-		PADDLE01 = 0x5
+		PADDLE01 = 0x5,
+		GEM13 = 0x6
 	};
 
 	enum MeshType : Uint8

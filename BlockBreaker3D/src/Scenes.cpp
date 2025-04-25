@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <iomanip>
 #include "nlohmann/json.hpp"
 
 namespace BB3D
@@ -66,13 +67,6 @@ namespace BB3D
 			// MeshType | TextureType | Transform Matrix | Pos | Rot | Scale | Velocity | Apply Shading?
 			m_SceneTextfields.push_back({ text, pos, color, is_visible });
 		}
-
-		// Camera Setup
-		m_SceneCam.pos = glm::vec3(0.0f, 3.0f, 7.0f);
-		m_SceneCam.front = glm::vec3(0.0f, 0.0f, -1.0f);
-		m_SceneCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
-		m_SceneCam.pitch = -30.0f;
-		m_SceneCam.yaw = -90.0f;
 	}
 
 	std::vector<Entity>& Scene::GetSceneEntities()
@@ -98,7 +92,11 @@ namespace BB3D
 	// ________________________________ MenuScene ________________________________
 	MenuScene::MenuScene(const char* filepath, std::function<void(SceneType)> trans_to_callback) : Scene(filepath, trans_to_callback)
 	{
-
+		m_SceneCam.pos = glm::vec3(0.0f, 1.0f, 4.0f);
+		m_SceneCam.front = glm::vec3(0.0f, 0.0f, -1.0f);
+		m_SceneCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
+		m_SceneCam.pitch = -30.0f;
+		m_SceneCam.yaw = -90.0f;
 	}
 
 	MenuScene::~MenuScene()
@@ -113,12 +111,35 @@ namespace BB3D
 		{
 			m_TransToCallback(SceneType::GAMEPLAY);
 		}
+
+		m_SceneEntities[0].rotation.x += 8.0f * delta_time;
+		m_SceneEntities[0].rotation.y += 4.5f * delta_time;
+		m_SceneEntities[0].rotation.z += 6.0f * delta_time;
+
+		if(m_SceneEntities[0].rotation.x >= 360.0f)
+			m_SceneEntities[0].rotation.x == 0.0f;
+		if(m_SceneEntities[0].rotation.y >= 360.0f)
+			m_SceneEntities[0].rotation.x == 0.0f;
+		if(m_SceneEntities[0].rotation.z >= 360.0f)
+			m_SceneEntities[0].rotation.x == 0.0f;
+
+		for (Entity& current_entity : m_SceneEntities)
+		{
+			current_entity.UpdateTransform();
+		}
 	}
 
 	// ________________________________ GameScene ________________________________
 	GameScene::GameScene(const char* filepath, std::function<void(SceneType)> trans_to_callback) : Scene(filepath, trans_to_callback)
 	{
+		m_SceneCam.pos = glm::vec3(0.0f, 8.0f, 9.0f);
+		m_SceneCam.front = glm::vec3(0.0f, 0.0f, -1.0f);
+		m_SceneCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
+		m_SceneCam.pitch = -50.0f;
+		m_SceneCam.yaw = -90.0f;
 
+		m_SceneEntities[2].velocity.x =  0.5f;
+		m_SceneEntities[2].velocity.z = -0.4f;
 	}
 
 	GameScene::~GameScene()
@@ -163,6 +184,8 @@ namespace BB3D
 			m_SceneTextfields[1].is_visible = false;
 		}
 
+		m_SceneEntities[2].position += m_SceneEntities[2].velocity * delta_time;
+
 		for (Entity& current_entity : m_SceneEntities)
 		{
 			current_entity.UpdateTransform();
@@ -176,21 +199,23 @@ namespace BB3D
 			m_SceneCam.pitch -= input_state.rely;
 		}
 
-			if (m_SceneCam.pitch > 89.0f)
-				m_SceneCam.pitch = 89.0f;
-			if (m_SceneCam.pitch < -89.0f)
-				m_SceneCam.pitch = -89.0f;
+		if (m_SceneCam.pitch > 89.0f)
+			m_SceneCam.pitch = 89.0f;
+		if (m_SceneCam.pitch < -89.0f)
+			m_SceneCam.pitch = -89.0f;
 
-			glm::vec3 direction;
-			direction.x = cos(glm::radians(m_SceneCam.yaw)) * cos(glm::radians(m_SceneCam.pitch));
-			direction.y = sin(glm::radians(m_SceneCam.pitch));
-			direction.z = sin(glm::radians(m_SceneCam.yaw)) * cos(glm::radians(m_SceneCam.pitch));
-			m_SceneCam.front = glm::normalize(direction);
+		glm::vec3 direction;
+		direction.x = cos(glm::radians(m_SceneCam.yaw)) * cos(glm::radians(m_SceneCam.pitch));
+		direction.y = sin(glm::radians(m_SceneCam.pitch));
+		direction.z = sin(glm::radians(m_SceneCam.yaw)) * cos(glm::radians(m_SceneCam.pitch));
+		m_SceneCam.front = glm::normalize(direction);
 
-			const bool* keys = SDL_GetKeyboardState(0);
+		const bool* keys = SDL_GetKeyboardState(0);
 
-			const float camera_speed = 2.0f * delta_time;
+		const float camera_speed = 2.0f * delta_time;
 
+		if (is_dbg)
+		{
 			if (keys[SDL_SCANCODE_W])
 				m_SceneCam.pos += camera_speed * m_SceneCam.front;
 			if (keys[SDL_SCANCODE_A])
@@ -199,6 +224,7 @@ namespace BB3D
 				m_SceneCam.pos -= camera_speed * m_SceneCam.front;
 			if (keys[SDL_SCANCODE_D])
 				m_SceneCam.pos += glm::normalize(glm::cross(m_SceneCam.front, m_SceneCam.up)) * camera_speed;
+		}
 		// ___________________________________
 	}
 }

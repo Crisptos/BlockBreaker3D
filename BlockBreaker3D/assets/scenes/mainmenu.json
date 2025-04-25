@@ -1,17 +1,28 @@
 {
+  "entities": [
+    {
+      "mesh": 0,
+      "texture": 2,
+      "position": [ 0.0, 0.0, 0.0 ],
+      "rotation": [ 0.0, 0.0, 0.0 ],
+      "scale": [ 1.0, 1.0, 1.0 ],
+      "is_shaded": false
+    }
+  ],
+
   "textfields": [
     {
       "text": "Block Breaker 3D",
       "position": [ 320.0, 180.0 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
-      "is_visible":  true
+      "is_visible": true
     },
 
     {
       "text": "By Christos Markakis",
-      "position": [340.0, 360.0],
+      "position": [ 340.0, 260.0 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
-      "is_visible":  true
+      "is_visible": true
     }
   ]
 }

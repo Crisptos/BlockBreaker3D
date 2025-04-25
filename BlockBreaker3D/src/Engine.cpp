@@ -148,18 +148,19 @@ namespace BB3D
 				"assets/skyboxes/space/space_back.png"
 			}
 		));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/gem_10.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/gem_03.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/metal_07.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/paddle.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_10.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_03.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/metal_07.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/paddle.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_13.png"));
 
 		test_font = CreateFontAtlasFromFile(s_Device, "assets/fonts/DejaVuSansMono.ttf");
 
 		// Load Meshes
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/ico.obj"));
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/quad.obj"));
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/sphere.obj"));
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/paddle.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/ico.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/quad.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/sphere.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/paddle.obj"));
 
 		// Load Shaders and Setup Pipelines
 		SDL_GPUShader* phong_vert_shader_model = CreateShaderFromFile(s_Device, "Shaders/model-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
