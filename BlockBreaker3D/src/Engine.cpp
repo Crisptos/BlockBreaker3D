@@ -153,6 +153,12 @@ namespace BB3D
 		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/metal_07.png"));
 		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/paddle.png"));
 		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_13.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/metal_21.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_1.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_2.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_3.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_4.png"));
+		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_5.png"));
 
 		test_font = CreateFontAtlasFromFile(s_Device, "assets/fonts/DejaVuSansMono.ttf");
 
@@ -161,6 +167,7 @@ namespace BB3D
 		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/quad.obj"));
 		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/sphere.obj"));
 		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/paddle.obj"));
+		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/block.obj"));
 
 		// Load Shaders and Setup Pipelines
 		SDL_GPUShader* phong_vert_shader_model = CreateShaderFromFile(s_Device, "Shaders/model-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);

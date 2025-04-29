@@ -132,14 +132,14 @@ namespace BB3D
 	// ________________________________ GameScene ________________________________
 	GameScene::GameScene(const char* filepath, std::function<void(SceneType)> trans_to_callback) : Scene(filepath, trans_to_callback)
 	{
-		m_SceneCam.pos = glm::vec3(0.0f, 8.0f, 9.0f);
+		m_SceneCam.pos = glm::vec3(0.0f, 9.0f, 10.0f);
 		m_SceneCam.front = glm::vec3(0.0f, 0.0f, -1.0f);
 		m_SceneCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
 		m_SceneCam.pitch = -50.0f;
 		m_SceneCam.yaw = -90.0f;
 
-		m_SceneEntities[2].velocity.x =  0.5f;
-		m_SceneEntities[2].velocity.z = -0.4f;
+		m_SceneEntities[2].velocity.x =  1.5f;
+		m_SceneEntities[2].velocity.z = -1.4f;
 	}
 
 	GameScene::~GameScene()
@@ -161,16 +161,6 @@ namespace BB3D
 			m_SceneEntities[0].position.x += 4.0f * delta_time;
 		}
 
-		if (input_state.current_keys[SDL_SCANCODE_UP])
-		{
-			m_SceneEntities[0].position.z -= 4.0f * delta_time;
-		}
-
-		if (input_state.current_keys[SDL_SCANCODE_DOWN])
-		{
-			m_SceneEntities[0].position.z += 4.0f * delta_time;
-		}
-
 		if (input_state.current_keys[SDL_SCANCODE_EQUALS] && !input_state.prev_keys[SDL_SCANCODE_EQUALS])
 		{
 			is_dbg = true;
@@ -182,6 +172,22 @@ namespace BB3D
 		{
 			is_dbg = false;
 			m_SceneTextfields[1].is_visible = false;
+		}
+
+		if (input_state.current_keys[SDL_SCANCODE_B] && !input_state.prev_keys[SDL_SCANCODE_B])
+		{
+			printf("Ball Pos: (%.2f, %.2f, %.2f)\n", m_SceneEntities[2].position.x, m_SceneEntities[2].position.y, m_SceneEntities[2].position.z);
+			printf("Camera Pos: (%.2f, %.2f, %.2f)\n", m_SceneCam.pos.x, m_SceneCam.pos.y, m_SceneCam.pos.z);
+		}
+
+		if (m_SceneEntities[2].position.x > 7.0f || m_SceneEntities[2].position.x < -7.0f)
+		{
+			m_SceneEntities[2].velocity.x *= -1;
+		}
+
+		if (m_SceneEntities[2].position.z > 7.0f || m_SceneEntities[2].position.z < -7.0f)
+		{
+			m_SceneEntities[2].velocity.z *= -1;
 		}
 
 		m_SceneEntities[2].position += m_SceneEntities[2].velocity * delta_time;

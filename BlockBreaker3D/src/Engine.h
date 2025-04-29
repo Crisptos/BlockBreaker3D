@@ -22,7 +22,13 @@ namespace BB3D
 		GEM03 = 0x3,
 		METAL07 = 0x4,
 		PADDLE01 = 0x5,
-		GEM13 = 0x6
+		GEM13 = 0x6,
+		METAL21 = 0x7,
+		BLOCK1 = 0x8,
+		BLOCK2 = 0x9,
+		BLOCK3 = 0xA,
+		BLOCK4 = 0xB,
+		BLOCK5 = 0xC,
 	};
 
 	enum MeshType : Uint8
@@ -30,7 +36,8 @@ namespace BB3D
 		ICO = 0x0,
 		QUAD = 0x1,
 		SPHERE = 0x2,
-		PADDLE = 0x3
+		PADDLE = 0x3,
+		BLOCK = 0x4
 	};
 
 	struct Timer

@@ -3,7 +3,7 @@
     {
       "mesh": 3,
       "texture": 5,
-      "position": [ 0.0, -0.5, -4.0 ],
+      "position": [ 0.0, -0.5, 6.5 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],
       "is_shaded": true
@@ -14,13 +14,22 @@
       "texture": 2,
       "position": [ 0.0, -2.0, 0.0 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
-      "scale": [ 5.0, 1.0, 5.0 ],
+      "scale": [ 7.0, 1.0, 7.0 ],
       "is_shaded": true
     },
 
     {
       "mesh": 2,
       "texture": 6,
+      "position": [ 0.0, 0.0, 0.0 ],
+      "rotation": [ 0.0, 0.0, 0.0 ],
+      "scale": [ 0.5, 0.5, 0.5 ],
+      "is_shaded": true
+    },
+
+    {
+      "mesh": 4,
+      "texture": 10,
       "position": [ 0.0, 0.0, 0.0 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],
