@@ -137,6 +137,7 @@ namespace BB3D
 		glm::vec3 velocity;
 
 		bool is_shaded;
+		bool is_active;
 
 		void UpdateTransform();
 		glm::mat4 GetTransformMatrix();
@@ -216,6 +217,7 @@ namespace BB3D
 		~GameScene();
 
 		void Update(InputState& input_state, float delta_time) override;
+		bool IsBallColliding(glm::vec3 ball_pos, glm::vec3 block_pos);
 	};
 
 	// ________________________________ Main Engine Class ________________________________

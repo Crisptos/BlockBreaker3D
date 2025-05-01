@@ -304,7 +304,7 @@ namespace BB3D
 		SDL_BindGPUGraphicsPipeline(render_pass_models, m_PipelineModelsNoPhong);
 		for (Entity& current_entity : s_SceneStack.top()->GetSceneEntities())
 		{
-			if (current_entity.is_shaded)
+			if (current_entity.is_shaded && !current_entity.is_active)
 				continue;
 
 			mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();
@@ -319,7 +319,7 @@ namespace BB3D
 		// Shaded Objects
 		for (Entity& current_entity : s_SceneStack.top()->GetSceneEntities())
 		{
-			if (!current_entity.is_shaded)
+			if (!current_entity.is_shaded && !current_entity.is_active)
 				continue;
 
 			mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();

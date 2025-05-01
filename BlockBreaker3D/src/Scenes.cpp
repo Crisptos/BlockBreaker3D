@@ -49,9 +49,10 @@ namespace BB3D
 			glm::vec3 rot = { loaded_entity["rotation"][0], loaded_entity["rotation"][1], loaded_entity["rotation"][2] };
 			glm::vec3 scale = { loaded_entity["scale"][0], loaded_entity["scale"][1], loaded_entity["scale"][2] };
 			bool is_shaded = loaded_entity["is_shaded"];
+			bool is_active = loaded_entity["is_active"];
 
 			// MeshType | TextureType | Transform Matrix | Pos | Rot | Scale | Velocity | Apply Shading?
-			m_SceneEntities.push_back({ mesh_t, texture_t, glm::mat4(1.0f), pos, rot, scale, glm::vec3(0.0f), is_shaded });
+			m_SceneEntities.push_back({ mesh_t, texture_t, glm::mat4(1.0f), pos, rot, scale, glm::vec3(0.0f), is_shaded, is_active });
 		}
 
 		// Build UI Elems and push to list
@@ -140,6 +141,42 @@ namespace BB3D
 
 		m_SceneEntities[2].velocity.x =  1.5f;
 		m_SceneEntities[2].velocity.z = -1.4f;
+
+		// Initialize Block Locations
+		// TODO Remove Test Map
+		const Uint8 BLOCK_MAP[6 * 6] =
+		{
+			0x8, 0x9, 0x0, 0x0, 0x8, 0x9,
+			0xB, 0xA, 0xB, 0xA, 0xB, 0xA,
+			0x9, 0x8, 0x9, 0x8, 0x9, 0x8,
+			0xA, 0xB, 0xA, 0xB, 0xA, 0xB,
+			0xB, 0xC, 0x0, 0x0, 0xB, 0xC,
+			0xC, 0xB, 0x0, 0x0, 0xC, 0xB
+		};
+		for (int z = 0; z < 6; z++)
+		{
+			for (int x = 0; x < 6; x++)
+			{
+				if (BLOCK_MAP[z * 6 + x] == 0x0)
+					continue;
+				
+				float x_offset = -5.0f + (x * 2.0f);
+				float z_offset = -5.0f + (z * 1.0f);
+				Entity new_block = {};
+				new_block.mesh_type = MeshType::BLOCK;
+				new_block.texture_type = static_cast<TextureType>(BLOCK_MAP[z * 6 + x]);
+				new_block.transform = glm::mat4(1.0f);
+				new_block.position = glm::vec3(x_offset, 0.0f, z_offset);
+				new_block.rotation = glm::vec3(0.0f);
+				new_block.scale = glm::vec3(0.5f);
+				new_block.velocity = glm::vec3(0.0f);
+				new_block.is_shaded = true;
+
+				m_SceneEntities.push_back(new_block);
+			}
+		}
+		
+		
 	}
 
 	GameScene::~GameScene()
@@ -151,6 +188,7 @@ namespace BB3D
 	{
 		// Main gameplay loop logic
 		// ___________________________________
+		//	Input
 		if (input_state.current_keys[SDL_SCANCODE_LEFT])
 		{
 			m_SceneEntities[0].position.x -= 4.0f * delta_time;
@@ -174,23 +212,42 @@ namespace BB3D
 			m_SceneTextfields[1].is_visible = false;
 		}
 
+		// Not the cleanest solution but doing it for the sake of time
+		// TODO Remove this
+		Entity* ball_ref = m_SceneEntities.data() + 2;
+		ball_ref->position += ball_ref->velocity * delta_time;
+
+		//	Collision
+
 		if (input_state.current_keys[SDL_SCANCODE_B] && !input_state.prev_keys[SDL_SCANCODE_B])
 		{
-			printf("Ball Pos: (%.2f, %.2f, %.2f)\n", m_SceneEntities[2].position.x, m_SceneEntities[2].position.y, m_SceneEntities[2].position.z);
+			printf("Ball Pos: (%.2f, %.2f, %.2f)\n", ball_ref->position.x, ball_ref->position.y, ball_ref->position.z);
 			printf("Camera Pos: (%.2f, %.2f, %.2f)\n", m_SceneCam.pos.x, m_SceneCam.pos.y, m_SceneCam.pos.z);
 		}
 
-		if (m_SceneEntities[2].position.x > 7.0f || m_SceneEntities[2].position.x < -7.0f)
+		if (ball_ref->position.x > 7.0f || ball_ref->position.x < -7.0f)
 		{
-			m_SceneEntities[2].velocity.x *= -1;
+			ball_ref->velocity.x *= -1;
 		}
 
-		if (m_SceneEntities[2].position.z > 7.0f || m_SceneEntities[2].position.z < -7.0f)
+		if (ball_ref->position.z > 7.0f || ball_ref->position.z < -7.0f)
 		{
-			m_SceneEntities[2].velocity.z *= -1;
+			ball_ref->velocity.z *= -1;
 		}
 
-		m_SceneEntities[2].position += m_SceneEntities[2].velocity * delta_time;
+		// Check collision on each block
+		// Iterating through every block on the map should be fine for our purposes
+		for (Entity& current_entity : m_SceneEntities)
+		{
+			if (current_entity.mesh_type != MeshType::BLOCK && !current_entity.is_active)
+				continue;
+
+			if (IsBallColliding(ball_ref->position, current_entity.position))
+			{
+				printf("HIT\n");
+				current_entity.is_active = false;
+			}
+		}
 
 		for (Entity& current_entity : m_SceneEntities)
 		{
@@ -232,5 +289,25 @@ namespace BB3D
 				m_SceneCam.pos += glm::normalize(glm::cross(m_SceneCam.front, m_SceneCam.up)) * camera_speed;
 		}
 		// ___________________________________
+	}
+
+	bool GameScene::IsBallColliding(glm::vec3 ball_pos, glm::vec3 collider_pos)
+	{
+		// Closest point to the sphere within the AABB box of the paddle
+		const float x = std::fmaxf(collider_pos.x - 3.0f, std::fminf(ball_pos.x, collider_pos.x + 3.0f));
+		const float y = std::fmaxf(collider_pos.y, std::fminf(ball_pos.y, collider_pos.y));;
+		const float z = std::fmaxf(collider_pos.z - 0.5f, std::fminf(ball_pos.z, collider_pos.z + 0.5f));;
+
+
+		// Euclidean distance between Point - Sphere
+		float distance = sqrtf(
+			((x - ball_pos.x) * (x - ball_pos.x)) +
+			((y - ball_pos.y) * (y - ball_pos.y)) +
+			((z - ball_pos.z) * (z - ball_pos.z))
+		);
+
+		return distance <= 1.0f;
+
+
 	}
 }
