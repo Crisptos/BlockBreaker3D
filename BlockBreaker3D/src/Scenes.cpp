@@ -153,6 +153,7 @@ namespace BB3D
 			0xB, 0xC, 0x0, 0x0, 0xB, 0xC,
 			0xC, 0xB, 0x0, 0x0, 0xC, 0xB
 		};
+
 		for (int z = 0; z < 6; z++)
 		{
 			for (int x = 0; x < 6; x++)
@@ -171,6 +172,7 @@ namespace BB3D
 				new_block.scale = glm::vec3(0.5f);
 				new_block.velocity = glm::vec3(0.0f);
 				new_block.is_shaded = true;
+				new_block.is_active = true;
 
 				m_SceneEntities.push_back(new_block);
 			}
@@ -239,7 +241,9 @@ namespace BB3D
 		// Iterating through every block on the map should be fine for our purposes
 		for (Entity& current_entity : m_SceneEntities)
 		{
-			if (current_entity.mesh_type != MeshType::BLOCK && !current_entity.is_active)
+			if (current_entity.mesh_type != MeshType::BLOCK)
+				continue;
+			if (!current_entity.is_active)
 				continue;
 
 			if (IsBallColliding(ball_ref->position, current_entity.position))
@@ -294,9 +298,9 @@ namespace BB3D
 	bool GameScene::IsBallColliding(glm::vec3 ball_pos, glm::vec3 collider_pos)
 	{
 		// Closest point to the sphere within the AABB box of the paddle
-		const float x = std::fmaxf(collider_pos.x - 3.0f, std::fminf(ball_pos.x, collider_pos.x + 3.0f));
+		const float x = std::fmaxf(collider_pos.x - 0.5f, std::fminf(ball_pos.x, collider_pos.x + 0.5f));
 		const float y = std::fmaxf(collider_pos.y, std::fminf(ball_pos.y, collider_pos.y));;
-		const float z = std::fmaxf(collider_pos.z - 0.5f, std::fminf(ball_pos.z, collider_pos.z + 0.5f));;
+		const float z = std::fmaxf(collider_pos.z, std::fminf(ball_pos.z, collider_pos.z));;
 
 
 		// Euclidean distance between Point - Sphere

@@ -3,7 +3,7 @@
     {
       "mesh": 3,
       "texture": 5,
-      "position": [ 0.0, -0.5, 6.5 ],
+      "position": [ 0.0, 0.0, 6.5 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],
       "is_shaded": true,
