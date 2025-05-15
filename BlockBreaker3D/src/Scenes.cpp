@@ -265,10 +265,11 @@ namespace BB3D
 			if (!current_entity.is_active)
 				continue;
 
-			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, current_entity.position);
+			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, current_entity.position, 0.5f);
 			if (result.is_colliding)
 			{
 				printf("HIT BLOCK\n");
+				printf("Collision Dir: %d\n", result.collision_dir);
 				current_entity.is_active = false;
 
 				if (result.collision_dir == VelocityDir::LEFT || result.collision_dir == VelocityDir::RIGHT)
@@ -300,17 +301,15 @@ namespace BB3D
 		// Paddle
 		if(!m_BallState.is_stuck)
 		{
-			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, m_SceneEntities[0].position);
+			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, m_SceneEntities[0].position, 1.0f);
 			if (result.is_colliding)
 			{
 				printf("HIT PADDLE\n");
-				float center_paddle = m_SceneEntities[0].position.x;
-				float distance = (m_SceneEntities[2].position.x + m_BallState.radius) - center_paddle;
-				float percentage = distance / 2.0f;
+				float distance = m_SceneEntities[2].position.x - m_SceneEntities[0].position.x;
 				float strength = 2.0f;
 				glm::vec3 old_velocity = m_SceneEntities[2].velocity;
-				m_SceneEntities[2].velocity.x = 1.5f * percentage * strength;
-				m_SceneEntities[2].velocity.z *= -1.0f * std::abs(m_SceneEntities[2].velocity.z);
+				m_SceneEntities[2].velocity.x = distance * strength;
+				m_SceneEntities[2].velocity.z = -1.0f * std::abs(m_SceneEntities[2].velocity.z);
 				m_SceneEntities[2].velocity = glm::normalize(m_SceneEntities[2].velocity) * glm::length(old_velocity);
 
 			}
@@ -353,30 +352,29 @@ namespace BB3D
 		{
 			m_SceneEntities[2].position += m_SceneEntities[2].velocity * delta_time;
 			// Bounds Checking
-			if (input_state.current_keys[SDL_SCANCODE_B] && !input_state.prev_keys[SDL_SCANCODE_B])
-			{
-				printf("Ball Pos: (%.2f, %.2f, %.2f)\n", m_SceneEntities[2].position.x, m_SceneEntities[2].position.y, m_SceneEntities[2].position.z);
-				printf("Paddle Pos: (%.2f, %.2f, %.2f)\n", m_SceneEntities[0].position.x, m_SceneEntities[0].position.y, m_SceneEntities[0].position.z);
-				printf("Camera Pos: (%.2f, %.2f, %.2f)\n", m_SceneCam.pos.x, m_SceneCam.pos.y, m_SceneCam.pos.z);
-			}
 
-			if (m_SceneEntities[2].position.x > 7.0f || m_SceneEntities[2].position.x < -7.0f)
+			if (m_SceneEntities[2].position.x > 6.0f || m_SceneEntities[2].position.x < -6.0f)
 			{
 				m_SceneEntities[2].velocity.x *= -1;
 			}
 
-			if (m_SceneEntities[2].position.z < -6.5f)
+			if (m_SceneEntities[2].position.z < -6.0f)
 			{
 				m_SceneEntities[2].velocity.z *= -1;
 			}
 
 			if (m_SceneEntities[2].position.z > 7.5f)
 			{
-				m_BallState.is_stuck = true;
-				m_SceneEntities[2].position = { m_SceneEntities[0].position.x, m_SceneEntities[0].position.y, m_SceneEntities[0].position.z - m_BallState.radius };
-				m_SceneEntities[2].velocity.x = 1.5f;
-				m_SceneEntities[2].velocity.z = -1.4f;
+				ResetBall();
 			}
+		}
+
+		if (input_state.current_keys[SDL_SCANCODE_B] && !input_state.prev_keys[SDL_SCANCODE_B])
+		{
+			printf("Ball Pos: (%.2f, %.2f, %.2f)\n", m_SceneEntities[2].position.x, m_SceneEntities[2].position.y, m_SceneEntities[2].position.z);
+			printf("Ball Velocity: (%.2f, %.2f)\n", m_SceneEntities[2].velocity.x, m_SceneEntities[2].velocity.z);
+			printf("Paddle Pos: (%.2f, %.2f, %.2f)\n", m_SceneEntities[0].position.x, m_SceneEntities[0].position.y, m_SceneEntities[0].position.z);
+			printf("Camera Pos: (%.2f, %.2f, %.2f)\n", m_SceneCam.pos.x, m_SceneCam.pos.y, m_SceneCam.pos.z);
 		}
 	}
 
@@ -384,16 +382,16 @@ namespace BB3D
 	{
 		m_BallState.is_stuck = true;
 		m_SceneEntities[2].position = { m_SceneEntities[0].position.x, m_SceneEntities[0].position.y, m_SceneEntities[0].position.z - m_BallState.radius };
-		m_SceneEntities[2].velocity.x = 1.5f;
-		m_SceneEntities[2].velocity.z = -1.4f;
+		m_SceneEntities[2].velocity.x = 3.5f;
+		m_SceneEntities[2].velocity.z = -3.4f;
 	}
 
-	GameScene::CollisionResult GameScene::IsBallColliding(glm::vec3 ball_pos, glm::vec3 collider_pos)
+	GameScene::CollisionResult GameScene::IsBallColliding(glm::vec3 ball_pos, glm::vec3 collider_pos, float collider_width)
 	{
 		// Closest point to the sphere within the AABB box of the paddle
 		glm::vec3 closest_point(0.0f);
 
-		closest_point.x = std::fmaxf(collider_pos.x - 0.5f, std::fminf(ball_pos.x, collider_pos.x + 0.5f));
+		closest_point.x = std::fmaxf(collider_pos.x - collider_width, std::fminf(ball_pos.x, collider_pos.x + collider_width));
 		closest_point.y = std::fmaxf(collider_pos.y, std::fminf(ball_pos.y, collider_pos.y));
 		closest_point.z = std::fmaxf(collider_pos.z, std::fminf(ball_pos.z, collider_pos.z));
 
@@ -413,10 +411,10 @@ namespace BB3D
 		if (is_colliding)
 		{
 			glm::vec3 directions[] = {
-				glm::vec3(0.0f, 0.0f, -1.0f),	// up
-				glm::vec3(1.0f, 0.0f, 0.0f),	// right
-				glm::vec3(0.0f, 0.0f, 1.0f),	// down
-				glm::vec3(-1.0f, 0.0f, 0.0f)	// left
+				glm::vec3(0.0f, 0.0f, -1.0f),	// down
+				glm::vec3(1.0f, 0.0f, 0.0f),	// left
+				glm::vec3(0.0f, 0.0f, 1.0f),	// up
+				glm::vec3(-1.0f, 0.0f, 0.0f)	// right
 			};
 
 			float max = 0.0f;

@@ -215,10 +215,10 @@ namespace BB3D
 	private:
 		enum VelocityDir
 		{
-			UP,
-			RIGHT,
 			DOWN,
-			LEFT
+			LEFT,
+			UP,
+			RIGHT
 		};
 
 		struct CollisionResult
@@ -239,7 +239,7 @@ namespace BB3D
 		~GameScene();
 
 		void Update(InputState& input_state, float delta_time) override;
-		CollisionResult IsBallColliding(glm::vec3 ball_pos, glm::vec3 block_pos);
+		CollisionResult IsBallColliding(glm::vec3 ball_pos, glm::vec3 collider_pos, float collider_width);
 
 	private:
 		void CheckCollisions();
