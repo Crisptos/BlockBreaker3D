@@ -212,12 +212,39 @@ namespace BB3D
 
 	class GameScene : public Scene
 	{
+	private:
+		enum VelocityDir
+		{
+			UP,
+			RIGHT,
+			DOWN,
+			LEFT
+		};
+
+		struct CollisionResult
+		{
+			bool is_colliding;
+			VelocityDir collision_dir;
+			glm::vec3 difference_vector;
+		};
+
+		struct
+		{
+			float radius;
+			bool is_stuck;
+		} m_BallState;
+
 	public:
 		GameScene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
 		~GameScene();
 
 		void Update(InputState& input_state, float delta_time) override;
-		bool IsBallColliding(glm::vec3 ball_pos, glm::vec3 block_pos);
+		CollisionResult IsBallColliding(glm::vec3 ball_pos, glm::vec3 block_pos);
+
+	private:
+		void UpdatePaddle(InputState& input_state, float delta_time);
+		void UpdateBall(InputState& input_state, float delta_time);
+		void ResetBall();
 	};
 
 	// ________________________________ Main Engine Class ________________________________
