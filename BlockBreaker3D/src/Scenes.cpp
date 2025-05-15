@@ -211,50 +211,7 @@ namespace BB3D
 
 		UpdatePaddle(input_state, delta_time);
 		UpdateBall(input_state, delta_time);
-		//ball_ref->position += ball_ref->velocity * delta_time;
-
-		//	Collision
-
-		// Check collision on each block
-		// Iterating through every block on the map should be fine for our purposes
-		for (Entity& current_entity : m_SceneEntities)
-		{
-			if (current_entity.mesh_type != MeshType::BLOCK)
-				continue;
-			if (!current_entity.is_active)
-				continue;
-
-			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, current_entity.position);
-			if (result.is_colliding)
-			{
-				printf("HIT\n");
-				current_entity.is_active = false;
-				
-				if (result.collision_dir == VelocityDir::LEFT || result.collision_dir == VelocityDir::RIGHT)
-				{
-					m_SceneEntities[2].velocity.x *= -1.0f;
-
-					// relocate ball
-					float penetration = m_BallState.radius - std::abs(result.difference_vector.x);
-					if (result.collision_dir == VelocityDir::LEFT)
-						m_SceneEntities[2].position.x -= penetration;
-					else
-						m_SceneEntities[2].position.x += penetration;
-				}
-
-				if (result.collision_dir == VelocityDir::UP || result.collision_dir == VelocityDir::DOWN)
-				{
-					m_SceneEntities[2].velocity.z *= -1.0f;
-
-					// relocate ball
-					float penetration = m_BallState.radius - std::abs(result.difference_vector.z);
-					if (result.collision_dir == VelocityDir::UP)
-						m_SceneEntities[2].position.z -= penetration;
-					else
-						m_SceneEntities[2].position.z += penetration;
-				}
-			}
-		}
+		CheckCollisions();
 
 		for (Entity& current_entity : m_SceneEntities)
 		{
@@ -296,6 +253,68 @@ namespace BB3D
 				m_SceneCam.pos += glm::normalize(glm::cross(m_SceneCam.front, m_SceneCam.up)) * camera_speed;
 		}
 		// ___________________________________
+	}
+
+	void GameScene::CheckCollisions()
+	{
+		// Blocks
+		for (Entity& current_entity : m_SceneEntities)
+		{
+			if (current_entity.mesh_type != MeshType::BLOCK)
+				continue;
+			if (!current_entity.is_active)
+				continue;
+
+			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, current_entity.position);
+			if (result.is_colliding)
+			{
+				printf("HIT BLOCK\n");
+				current_entity.is_active = false;
+
+				if (result.collision_dir == VelocityDir::LEFT || result.collision_dir == VelocityDir::RIGHT)
+				{
+					m_SceneEntities[2].velocity.x *= -1.0f;
+
+					// relocate ball
+					float penetration = m_BallState.radius - std::abs(result.difference_vector.x);
+					if (result.collision_dir == VelocityDir::LEFT)
+						m_SceneEntities[2].position.x -= penetration;
+					else
+						m_SceneEntities[2].position.x += penetration;
+				}
+
+				if (result.collision_dir == VelocityDir::UP || result.collision_dir == VelocityDir::DOWN)
+				{
+					m_SceneEntities[2].velocity.z *= -1.0f;
+
+					// relocate ball
+					float penetration = m_BallState.radius - std::abs(result.difference_vector.z);
+					if (result.collision_dir == VelocityDir::UP)
+						m_SceneEntities[2].position.z -= penetration;
+					else
+						m_SceneEntities[2].position.z += penetration;
+				}
+			}
+		}
+
+		// Paddle
+		if(!m_BallState.is_stuck)
+		{
+			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, m_SceneEntities[0].position);
+			if (result.is_colliding)
+			{
+				printf("HIT PADDLE\n");
+				float center_paddle = m_SceneEntities[0].position.x;
+				float distance = (m_SceneEntities[2].position.x + m_BallState.radius) - center_paddle;
+				float percentage = distance / 2.0f;
+				float strength = 2.0f;
+				glm::vec3 old_velocity = m_SceneEntities[2].velocity;
+				m_SceneEntities[2].velocity.x = 1.5f * percentage * strength;
+				m_SceneEntities[2].velocity.z *= -1.0f * std::abs(m_SceneEntities[2].velocity.z);
+				m_SceneEntities[2].velocity = glm::normalize(m_SceneEntities[2].velocity) * glm::length(old_velocity);
+
+			}
+		}
 	}
 
 	void GameScene::UpdatePaddle(InputState& input_state, float delta_time)

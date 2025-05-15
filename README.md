@@ -20,8 +20,8 @@
 - [x] Skybox and Cubemap samplers
 - [x] Batched UI Layer Rendering
 - [x] Font Rendering
-- [ ] Custom 2D Physics (WIP)
-- [ ] Breakout Gameplay (WIP)
+- [x] Custom 2D Physics
+- [x] Breakout Gameplay
 - [ ] Custom Level Creation and Loading (WIP)
 - [ ] Music and SFX (WIP)
 

@@ -242,6 +242,7 @@ namespace BB3D
 		CollisionResult IsBallColliding(glm::vec3 ball_pos, glm::vec3 block_pos);
 
 	private:
+		void CheckCollisions();
 		void UpdatePaddle(InputState& input_state, float delta_time);
 		void UpdateBall(InputState& input_state, float delta_time);
 		void ResetBall();
