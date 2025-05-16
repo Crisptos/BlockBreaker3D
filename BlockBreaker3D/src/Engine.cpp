@@ -83,7 +83,7 @@ namespace BB3D
 				Update();
 				Render();
 				UpdateDeltaTime();
-				CopyPrevKeys();
+				CopyPrevInput();
 			}
 		}
 	}
@@ -127,6 +127,8 @@ namespace BB3D
 		// Reset Input State
 		std::memset(m_InputState.current_keys, 0, sizeof(m_InputState.current_keys));
 		std::memset(m_InputState.prev_keys, 0, sizeof(m_InputState.prev_keys));
+		std::memset(m_InputState.current_mousebtn, 0, sizeof(m_InputState.current_mousebtn));
+		std::memset(m_InputState.prev_mousebtn, 0, sizeof(m_InputState.prev_mousebtn));
 		m_InputState.relx = 0;
 		m_InputState.rely = 0;
 
@@ -409,6 +411,8 @@ namespace BB3D
 				{
 					m_InputState.relx = ev.motion.xrel * mouse_sensitivity;
 					m_InputState.rely = ev.motion.yrel * mouse_sensitivity;
+					m_InputState.current_mouse_x = ev.motion.x;
+					m_InputState.current_mouse_y = ev.motion.y;
 					break;
 				}
 
@@ -421,6 +425,18 @@ namespace BB3D
 				case SDL_EVENT_KEY_UP:
 				{
 					RecordKeyState(ev.key.scancode, false);
+					break;
+				}
+
+				case SDL_EVENT_MOUSE_BUTTON_DOWN:
+				{
+					RecordMouseBtnState(ev.button.button, true);
+					break;
+				}
+
+				case SDL_EVENT_MOUSE_BUTTON_UP:
+				{
+					RecordMouseBtnState(ev.button.button, false);
 					break;
 				}
 			}
@@ -459,9 +475,21 @@ namespace BB3D
 			m_InputState.current_keys[keycode] = is_keydown;
 	}
 
-	void Engine::CopyPrevKeys()
+	void Engine::RecordMouseBtnState(Uint8 mousebtn_idx, bool is_btndown)
+	{
+		if (mousebtn_idx < 0 || mousebtn_idx >= 12)
+			return;
+
+		if (m_InputState.current_mousebtn[mousebtn_idx] != is_btndown)
+			m_InputState.current_mousebtn[mousebtn_idx] = is_btndown;
+	}
+
+	void Engine::CopyPrevInput()
 	{
 		std::memcpy(m_InputState.prev_keys, m_InputState.current_keys, sizeof(m_InputState.current_keys));
+		std::memcpy(m_InputState.prev_mousebtn, m_InputState.current_mousebtn, sizeof(m_InputState.current_mousebtn));
+		m_InputState.prev_mouse_x = m_InputState.current_mouse_x;
+		m_InputState.prev_mouse_y = m_InputState.current_mouse_y;
 	}
 
 	void Engine::UpdateDeltaTime()

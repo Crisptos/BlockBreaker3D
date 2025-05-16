@@ -51,7 +51,11 @@ namespace BB3D
 	{
 		bool current_keys[128];
 		bool prev_keys[128];
+		bool current_mousebtn[12];
+		bool prev_mousebtn[12];
 		float relx, rely;
+		int current_mouse_x, current_mouse_y;
+		int prev_mouse_x, prev_mouse_y;
 	};
 
 	// OUTSIDE SOURCE FILES
@@ -203,11 +207,18 @@ namespace BB3D
 
 	class MenuScene : public Scene
 	{
+	private:
+		bool m_IsButtonsDown[3];
+
 	public:
 		MenuScene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
 		~MenuScene();
 
 		void Update(InputState& input_state, float delta_time) override;
+
+	private:
+		void CheckMouseInput(InputState& input_state, float delta_time);
+		bool IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h);
 	};
 
 	class GameScene : public Scene
@@ -270,7 +281,8 @@ namespace BB3D
 		// Utility
 		static void SceneTransToCallback(SceneType type);
 		void RecordKeyState(SDL_Keycode keycode, bool is_keydown);
-		void CopyPrevKeys();
+		void RecordMouseBtnState(Uint8 mousebtn_idx, bool is_btndown);
+		void CopyPrevInput();
 		void UpdateDeltaTime();
 		
 	private:

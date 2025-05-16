@@ -8,6 +8,8 @@
 namespace BB3D
 {
 	// TEMP DEBUG FLYMODE CAMERA
+	const glm::vec4 SELECTED_ELEM_COLOR = { 0.98, 0.37, 0.87, 1.0 };
+	const glm::vec4 NOT_SELECTED_ELEM_COLOR = { 0.96, 0.96, 0.96, 1.0 };
 	bool is_dbg = false;
 
 	// Base scene implementation
@@ -107,6 +109,9 @@ namespace BB3D
 
 	void MenuScene::Update(InputState& input_state, float delta_time)
 	{
+		// Input
+		CheckMouseInput(input_state, delta_time);
+
 		// Test scene transition
 		if (input_state.current_keys[SDL_SCANCODE_S] && !input_state.prev_keys[SDL_SCANCODE_S])
 		{
@@ -118,16 +123,114 @@ namespace BB3D
 		m_SceneEntities[0].rotation.z += 6.0f * delta_time;
 
 		if(m_SceneEntities[0].rotation.x >= 360.0f)
-			m_SceneEntities[0].rotation.x == 0.0f;
+			m_SceneEntities[0].rotation.x = 0.0f;
 		if(m_SceneEntities[0].rotation.y >= 360.0f)
-			m_SceneEntities[0].rotation.x == 0.0f;
+			m_SceneEntities[0].rotation.x = 0.0f;
 		if(m_SceneEntities[0].rotation.z >= 360.0f)
-			m_SceneEntities[0].rotation.x == 0.0f;
+			m_SceneEntities[0].rotation.x = 0.0f;
 
 		for (Entity& current_entity : m_SceneEntities)
 		{
 			current_entity.UpdateTransform();
 		}
+	}
+
+	void MenuScene::CheckMouseInput(InputState& input_state, float delta_time)
+	{
+		bool in_play = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 110, 40);
+		bool in_options = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 180, 40);
+		bool in_quit = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[4].pos, 100, 40);
+
+		if (!in_play)
+		{
+			m_IsButtonsDown[0] = false;
+			m_SceneTextfields[2].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		if (!in_options)
+		{
+			m_IsButtonsDown[1] = false;
+			m_SceneTextfields[3].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		if (!in_quit)
+		{
+			m_IsButtonsDown[2] = false;
+			m_SceneTextfields[4].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		// TODO Clean this up a bit
+		// Play Button
+		if (
+			input_state.current_mousebtn[1] && !input_state.prev_mousebtn[1] &&
+			in_play &&
+			!m_IsButtonsDown[0])
+		{
+			printf("Held Play Button Down!\n");
+			m_IsButtonsDown[0] = true;
+			m_SceneTextfields[2].color = SELECTED_ELEM_COLOR;
+		}
+
+		if (
+			!input_state.current_mousebtn[1] && input_state.prev_mousebtn[1] &&
+			in_play &&
+			m_IsButtonsDown[0])
+		{
+			printf("Released Play Button Up!\n");
+			m_IsButtonsDown[0] = false;
+			m_SceneTextfields[2].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		// Options Button
+		if (
+			input_state.current_mousebtn[1] && !input_state.prev_mousebtn[1] &&
+			in_options &&
+			!m_IsButtonsDown[1])
+		{
+			printf("Held Play Button Down!\n");
+			m_IsButtonsDown[1] = true;
+			m_SceneTextfields[3].color = SELECTED_ELEM_COLOR;
+		}
+
+		if (
+			!input_state.current_mousebtn[1] && input_state.prev_mousebtn[1] &&
+			in_options &&
+			m_IsButtonsDown[1])
+		{
+			printf("Released Play Button Up!\n");
+			m_IsButtonsDown[1] = false;
+			m_SceneTextfields[3].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		// Quit Button
+		if (
+			input_state.current_mousebtn[1] && !input_state.prev_mousebtn[1] &&
+			in_quit &&
+			!m_IsButtonsDown[2])
+		{
+			printf("Held Play Button Down!\n");
+			m_IsButtonsDown[2] = true;
+			m_SceneTextfields[4].color = SELECTED_ELEM_COLOR;
+		}
+
+		if (
+			!input_state.current_mousebtn[1] && input_state.prev_mousebtn[1] &&
+			in_quit &&
+			m_IsButtonsDown[2])
+		{
+			printf("Released Play Button Up!\n");
+			m_IsButtonsDown[2] = false;
+			m_SceneTextfields[4].color = NOT_SELECTED_ELEM_COLOR;
+		}
+			
+	}
+
+	bool MenuScene::IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h)
+	{
+		if (mouse_x < box_pos.x + w && mouse_x > box_pos.x && mouse_y < box_pos.y + h && mouse_y > box_pos.y)
+			return true;
+
+		return false;
 	}
 
 	// ________________________________ GameScene ________________________________
