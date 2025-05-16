@@ -11,7 +11,7 @@
 - FreeType
 - STB Image
 - nlohmann json
-
+***
 ### Project Goals
 - [x] Basic 3D rendering of meshes
 - [x] Mesh loading and parsing using Assimp
@@ -24,6 +24,10 @@
 - [x] Breakout Gameplay
 - [ ] Custom Level Creation and Loading (WIP)
 - [ ] Music and SFX (WIP)
-
-#### TODO
-<p> Add CMake Setup Tutorial </p>
+***
+### Build Guide
+#### Vulkan Backend
+1. Install the Vulkan SDK from [LunarG](https://vulkan.lunarg.com/) in order to compile the GLSL shaders to SPRV
+#### Using CMake
+Option A: **Building Dependencies from Source**
+***
