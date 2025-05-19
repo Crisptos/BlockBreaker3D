@@ -22,6 +22,7 @@ namespace BB3D
 	SDL_Window* Engine::s_Window;
 	SDL_GPUDevice* Engine::s_Device;
 	std::stack<std::unique_ptr<Scene>> Engine::s_SceneStack;
+	bool Engine::s_IsRunning = true;
 
 	// ________________________________ Engine Lifetime ________________________________
 
@@ -75,7 +76,7 @@ namespace BB3D
 	void Engine::Run()
 	{
 		Setup();
-		while (m_IsRunning)
+		while (s_IsRunning)
 		{
 			if (!m_IsIdle)
 			{
@@ -403,7 +404,7 @@ namespace BB3D
 			{
 				case SDL_EVENT_QUIT:
 				{
-					m_IsRunning = false;
+					s_IsRunning = false;
 					break;
 				}
 
@@ -441,19 +442,24 @@ namespace BB3D
 				}
 			}
 		}
-
-		if (m_InputState.current_keys[SDL_SCANCODE_ESCAPE])
-			m_IsRunning = false;
 	}
 
 	void Engine::SceneTransToCallback(SceneType type)
 	{
 		switch (type)
 		{
+			case SceneType::QUIT:
+			{
+				s_IsRunning = false;
+				break;
+			}
+
 			case SceneType::MAIN_MENU:
 			{
 				SDL_ShowCursor();
 				SDL_SetWindowRelativeMouseMode(s_Window, false);
+				s_SceneStack.pop();
+				break;
 			}
 
 			case SceneType::GAMEPLAY:
@@ -461,7 +467,7 @@ namespace BB3D
 				SDL_HideCursor();
 				SDL_SetWindowRelativeMouseMode(s_Window, true);
 				s_SceneStack.push(std::make_unique<GameScene>("assets/scenes/gameplay.json", SceneTransToCallback));
-				
+				break;
 			}
 		}
 	}

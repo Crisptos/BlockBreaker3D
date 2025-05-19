@@ -180,6 +180,7 @@ namespace BB3D
 	// ________________________________ Scenes.cpp ________________________________
 	enum SceneType : Uint8
 	{
+		QUIT,
 		MAIN_MENU,
 		GAMEPLAY
 	};
@@ -287,7 +288,7 @@ namespace BB3D
 		
 	private:
 		// State
-		bool m_IsRunning = true;
+		static bool s_IsRunning;
 		bool m_IsIdle = false;
 		Timer m_Timer;
 		InputState m_InputState;

@@ -100,6 +100,8 @@ namespace BB3D
 		m_SceneCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
 		m_SceneCam.pitch = -30.0f;
 		m_SceneCam.yaw = -90.0f;
+
+		std::memset(m_IsButtonsDown, 0, sizeof(m_IsButtonsDown));
 	}
 
 	MenuScene::~MenuScene()
@@ -111,12 +113,6 @@ namespace BB3D
 	{
 		// Input
 		CheckMouseInput(input_state, delta_time);
-
-		// Test scene transition
-		if (input_state.current_keys[SDL_SCANCODE_S] && !input_state.prev_keys[SDL_SCANCODE_S])
-		{
-			m_TransToCallback(SceneType::GAMEPLAY);
-		}
 
 		m_SceneEntities[0].rotation.x += 8.0f * delta_time;
 		m_SceneEntities[0].rotation.y += 4.5f * delta_time;
@@ -166,7 +162,7 @@ namespace BB3D
 			in_play &&
 			!m_IsButtonsDown[0])
 		{
-			printf("Held Play Button Down!\n");
+			printf("Pressed Play Button Down!\n");
 			m_IsButtonsDown[0] = true;
 			m_SceneTextfields[2].color = SELECTED_ELEM_COLOR;
 		}
@@ -179,6 +175,8 @@ namespace BB3D
 			printf("Released Play Button Up!\n");
 			m_IsButtonsDown[0] = false;
 			m_SceneTextfields[2].color = NOT_SELECTED_ELEM_COLOR;
+			m_TransToCallback(SceneType::GAMEPLAY);
+			return;
 		}
 
 		// Options Button
@@ -187,7 +185,7 @@ namespace BB3D
 			in_options &&
 			!m_IsButtonsDown[1])
 		{
-			printf("Held Play Button Down!\n");
+			printf("Pressed Options Button Down!\n");
 			m_IsButtonsDown[1] = true;
 			m_SceneTextfields[3].color = SELECTED_ELEM_COLOR;
 		}
@@ -197,7 +195,7 @@ namespace BB3D
 			in_options &&
 			m_IsButtonsDown[1])
 		{
-			printf("Released Play Button Up!\n");
+			printf("Released Options Button Up!\n");
 			m_IsButtonsDown[1] = false;
 			m_SceneTextfields[3].color = NOT_SELECTED_ELEM_COLOR;
 		}
@@ -208,7 +206,7 @@ namespace BB3D
 			in_quit &&
 			!m_IsButtonsDown[2])
 		{
-			printf("Held Play Button Down!\n");
+			printf("Pressed Quit Button Down!\n");
 			m_IsButtonsDown[2] = true;
 			m_SceneTextfields[4].color = SELECTED_ELEM_COLOR;
 		}
@@ -218,9 +216,11 @@ namespace BB3D
 			in_quit &&
 			m_IsButtonsDown[2])
 		{
-			printf("Released Play Button Up!\n");
+			printf("Released Quit Button Up!\n");
 			m_IsButtonsDown[2] = false;
 			m_SceneTextfields[4].color = NOT_SELECTED_ELEM_COLOR;
+			m_TransToCallback(SceneType::QUIT);
+			return;
 		}
 			
 	}
@@ -294,6 +294,12 @@ namespace BB3D
 		// Main gameplay loop logic
 		// ___________________________________
 		//	Input
+		if (input_state.current_keys[SDL_SCANCODE_ESCAPE] && !input_state.prev_keys[SDL_SCANCODE_ESCAPE])
+		{
+			m_TransToCallback(SceneType::MAIN_MENU);
+			return;
+		}
+
 		if (input_state.current_keys[SDL_SCANCODE_SPACE] && !input_state.prev_keys[SDL_SCANCODE_SPACE])
 		{
 			m_BallState.is_stuck = false;
