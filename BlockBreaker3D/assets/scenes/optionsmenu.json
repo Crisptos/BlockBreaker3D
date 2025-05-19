@@ -1,0 +1,35 @@
+{
+  "entities": [
+    
+  ],
+
+  "textfields": [
+    {
+      "text": "Skybox: ",
+      "position": [ 40.0, 100.0 ],
+      "color": [ 0.96, 0.96, 0.96, 1.0 ],
+      "is_visible": true
+    },
+
+    {
+      "text": "Background Music: TODO",
+      "position": [ 40.0, 180.0 ],
+      "color": [ 0.96, 0.96, 0.96, 1.0 ],
+      "is_visible": true
+    },
+
+    {
+      "text": "Resolution: TODO",
+      "position": [ 40.0, 260.0 ],
+      "color": [ 0.96, 0.96, 0.96, 1.0 ],
+      "is_visible": true
+    },
+
+    {
+      "text": "<- Back",
+      "position": [ 40.0, 640.0 ],
+      "color": [ 0.96, 0.96, 0.96, 1.0 ],
+      "is_visible": true
+    }
+  ]
+}

@@ -469,6 +469,12 @@ namespace BB3D
 				s_SceneStack.push(std::make_unique<GameScene>("assets/scenes/gameplay.json", SceneTransToCallback));
 				break;
 			}
+
+			case SceneType::OPTIONS:
+			{
+				s_SceneStack.push(std::make_unique<OptionsScene>("assets/scenes/optionsmenu.json", SceneTransToCallback));
+				break;
+			}
 		}
 	}
 

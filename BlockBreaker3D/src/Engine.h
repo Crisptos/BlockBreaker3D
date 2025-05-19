@@ -182,7 +182,8 @@ namespace BB3D
 	{
 		QUIT,
 		MAIN_MENU,
-		GAMEPLAY
+		GAMEPLAY,
+		OPTIONS
 	};
 
 	class Scene
@@ -214,6 +215,22 @@ namespace BB3D
 	public:
 		MenuScene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
 		~MenuScene();
+
+		void Update(InputState& input_state, float delta_time) override;
+
+	private:
+		void CheckMouseInput(InputState& input_state, float delta_time);
+		bool IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h);
+	};
+
+	class OptionsScene : public Scene
+	{
+	private:
+		bool m_IsButtonsDown[4];
+
+	public:
+		OptionsScene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
+		~OptionsScene();
 
 		void Update(InputState& input_state, float delta_time) override;
 

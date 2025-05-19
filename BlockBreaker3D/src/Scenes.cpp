@@ -198,6 +198,8 @@ namespace BB3D
 			printf("Released Options Button Up!\n");
 			m_IsButtonsDown[1] = false;
 			m_SceneTextfields[3].color = NOT_SELECTED_ELEM_COLOR;
+			m_TransToCallback(SceneType::OPTIONS);
+			return;
 		}
 
 		// Quit Button
@@ -226,6 +228,157 @@ namespace BB3D
 	}
 
 	bool MenuScene::IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h)
+	{
+		if (mouse_x < box_pos.x + w && mouse_x > box_pos.x && mouse_y < box_pos.y + h && mouse_y > box_pos.y)
+			return true;
+
+		return false;
+	}
+
+
+	// ________________________________ OptionsScene ________________________________
+	OptionsScene::OptionsScene(const char* filepath, std::function<void(SceneType)> trans_to_callback) : Scene(filepath, trans_to_callback)
+	{
+		m_SceneCam.pos = glm::vec3(0.0f, 1.0f, 4.0f);
+		m_SceneCam.front = glm::vec3(0.0f, 0.0f, -1.0f);
+		m_SceneCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
+		m_SceneCam.pitch = -30.0f;
+		m_SceneCam.yaw = -90.0f;
+
+	}
+
+	OptionsScene::~OptionsScene()
+	{
+
+	}
+
+	void OptionsScene::Update(InputState& input_state, float delta_time)
+	{
+		CheckMouseInput(input_state, delta_time);
+
+	}
+
+	void OptionsScene::CheckMouseInput(InputState& input_state, float delta_time)
+	{
+		bool in_skybox = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[0].pos, 200, 40);
+		bool in_music = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[1].pos, 280, 40);
+		bool in_res = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 280, 40);
+		bool in_back = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 200, 40);
+
+		if (!in_skybox)
+		{
+			m_IsButtonsDown[0] = false;
+			m_SceneTextfields[0].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		if (!in_music)
+		{
+			m_IsButtonsDown[1] = false;
+			m_SceneTextfields[1].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		if (!in_res)
+		{
+			m_IsButtonsDown[2] = false;
+			m_SceneTextfields[2].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		if (!in_back)
+		{
+			m_IsButtonsDown[3] = false;
+			m_SceneTextfields[3].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		// TODO Clean this up a bit
+		// Skybox Selector
+		if (
+			input_state.current_mousebtn[1] && !input_state.prev_mousebtn[1] &&
+			in_skybox &&
+			!m_IsButtonsDown[0])
+		{
+			printf("Pressed Play Button Down!\n");
+			m_IsButtonsDown[0] = true;
+			m_SceneTextfields[0].color = SELECTED_ELEM_COLOR;
+		}
+
+		if (
+			!input_state.current_mousebtn[1] && input_state.prev_mousebtn[1] &&
+			in_skybox &&
+			m_IsButtonsDown[0])
+		{
+			printf("Released Play Button Up!\n");
+			m_IsButtonsDown[0] = false;
+			m_SceneTextfields[0].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		// Resolution Selector
+		if (
+			input_state.current_mousebtn[1] && !input_state.prev_mousebtn[1] &&
+			in_music &&
+			!m_IsButtonsDown[1])
+		{
+			printf("Pressed Res Button Down!\n");
+			m_IsButtonsDown[1] = true;
+			m_SceneTextfields[1].color = SELECTED_ELEM_COLOR;
+		}
+
+		if (
+			!input_state.current_mousebtn[1] && input_state.prev_mousebtn[1] &&
+			in_music &&
+			m_IsButtonsDown[1])
+		{
+			printf("Released Res Button Up!\n");
+			m_IsButtonsDown[1] = false;
+			m_SceneTextfields[1].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		// Music Selector
+		if (
+			input_state.current_mousebtn[1] && !input_state.prev_mousebtn[1] &&
+			in_res &&
+			!m_IsButtonsDown[2])
+		{
+			printf("Pressed Music Button Down!\n");
+			m_IsButtonsDown[2] = true;
+			m_SceneTextfields[2].color = SELECTED_ELEM_COLOR;
+		}
+
+		if (
+			!input_state.current_mousebtn[1] && input_state.prev_mousebtn[1] &&
+			in_res &&
+			m_IsButtonsDown[2])
+		{
+			printf("Released Music Button Up!\n");
+			m_IsButtonsDown[2] = false;
+			m_SceneTextfields[2].color = NOT_SELECTED_ELEM_COLOR;
+		}
+
+		// Back Button
+		if (
+			input_state.current_mousebtn[1] && !input_state.prev_mousebtn[1] &&
+			in_back &&
+			!m_IsButtonsDown[3])
+		{
+			printf("Pressed Back Button Down!\n");
+			m_IsButtonsDown[3] = true;
+			m_SceneTextfields[3].color = SELECTED_ELEM_COLOR;
+		}
+
+		if (
+			!input_state.current_mousebtn[1] && input_state.prev_mousebtn[1] &&
+			in_back &&
+			m_IsButtonsDown[3])
+		{
+			printf("Released Back Button Up!\n");
+			m_IsButtonsDown[3] = false;
+			m_SceneTextfields[3].color = NOT_SELECTED_ELEM_COLOR;
+			m_TransToCallback(SceneType::MAIN_MENU);
+			return;
+		}
+
+	}
+
+	bool OptionsScene::IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h)
 	{
 		if (mouse_x < box_pos.x + w && mouse_x > box_pos.x && mouse_y < box_pos.y + h && mouse_y > box_pos.y)
 			return true;
