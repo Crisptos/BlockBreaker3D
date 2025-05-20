@@ -25,9 +25,16 @@
 - [ ] Custom Level Creation and Loading (WIP)
 - [ ] Music and SFX (WIP)
 ***
+### Preview Images
+<img src="Previews/prev_title.png" width="960" height="540"/>
+<img src="Previews/prev_game.png" width="960" height="540"/>
+***
+
 ### Build Guide
 #### Vulkan Backend
 1. Install the Vulkan SDK from [LunarG](https://vulkan.lunarg.com/) in order to compile the GLSL shaders to SPRV
 #### Using CMake
 Option A: **Building Dependencies from Source**
+
+Option B: **Relying on Fetch Content**
 ***
