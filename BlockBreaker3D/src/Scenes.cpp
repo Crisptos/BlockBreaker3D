@@ -237,7 +237,7 @@ namespace BB3D
 
 
 	// ________________________________ OptionsScene ________________________________
-	OptionsScene::OptionsScene(const char* filepath, std::function<void(SceneType)> trans_to_callback) : Scene(filepath, trans_to_callback)
+	OptionsScene::OptionsScene(const char* filepath, std::function<void(SceneType)> trans_to_callback, std::function<void()> toggle_skybox_callback) : Scene(filepath, trans_to_callback)
 	{
 		m_SceneCam.pos = glm::vec3(0.0f, 1.0f, 4.0f);
 		m_SceneCam.front = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -245,6 +245,9 @@ namespace BB3D
 		m_SceneCam.pitch = -30.0f;
 		m_SceneCam.yaw = -90.0f;
 
+		std::memset(m_IsButtonsDown, 0, sizeof(m_IsButtonsDown));
+
+		m_ToggleSkyboxCallback = toggle_skybox_callback;
 	}
 
 	OptionsScene::~OptionsScene()
@@ -296,7 +299,7 @@ namespace BB3D
 			in_skybox &&
 			!m_IsButtonsDown[0])
 		{
-			printf("Pressed Play Button Down!\n");
+			printf("Pressed Skybox Button Down!\n");
 			m_IsButtonsDown[0] = true;
 			m_SceneTextfields[0].color = SELECTED_ELEM_COLOR;
 		}
@@ -306,9 +309,10 @@ namespace BB3D
 			in_skybox &&
 			m_IsButtonsDown[0])
 		{
-			printf("Released Play Button Up!\n");
+			printf("Released Skybox Button Up!\n");
 			m_IsButtonsDown[0] = false;
 			m_SceneTextfields[0].color = NOT_SELECTED_ELEM_COLOR;
+			m_ToggleSkyboxCallback();
 		}
 
 		// Resolution Selector
@@ -402,12 +406,12 @@ namespace BB3D
 		// TODO Remove Test Map
 		const Uint8 BLOCK_MAP[6 * 6] =
 		{
-			0x8, 0x9, 0x0, 0x0, 0x8, 0x9,
-			0xB, 0xA, 0xB, 0xA, 0xB, 0xA,
-			0x9, 0x8, 0x9, 0x8, 0x9, 0x8,
-			0xA, 0xB, 0xA, 0xB, 0xA, 0xB,
-			0xB, 0xC, 0x0, 0x0, 0xB, 0xC,
-			0xC, 0xB, 0x0, 0x0, 0xC, 0xB
+			0x7, 0x8, 0x0, 0x0, 0x7, 0x8,
+			0xA, 0x9, 0xA, 0x9, 0xA, 0x9,
+			0x8, 0x7, 0x8, 0x7, 0x8, 0x7,
+			0x9, 0xA, 0x9, 0xA, 0x9, 0xA,
+			0xA, 0xB, 0x0, 0x0, 0xA, 0xB,
+			0xB, 0xA, 0x0, 0x0, 0xB, 0xA
 		};
 
 		for (int z = 0; z < 6; z++)

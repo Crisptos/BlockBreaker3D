@@ -5,7 +5,7 @@
 
   "textfields": [
     {
-      "text": "Skybox: ",
+      "text": "Toggle Skybox",
       "position": [ 40.0, 100.0 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true

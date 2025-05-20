@@ -2,7 +2,7 @@
   "entities": [
     {
       "mesh": 3,
-      "texture": 5,
+      "texture": 4,
       "position": [ 0.0, 0.0, 6.5 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],
@@ -12,7 +12,7 @@
 
     {
       "mesh": 1,
-      "texture": 7,
+      "texture": 6,
       "position": [ 0.0, -2.0, 0.0 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 7.0, 1.0, 7.0 ],
@@ -22,7 +22,7 @@
 
     {
       "mesh": 2,
-      "texture": 6,
+      "texture": 5,
       "position": [ 0.0, 0.0, 0.0 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],
@@ -32,7 +32,7 @@
 
     {
       "mesh": 0,
-      "texture": 3,
+      "texture": 2,
       "position": [ -5.0, 3.0, -5.0 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],
@@ -42,7 +42,7 @@
 
     {
       "mesh": 0,
-      "texture": 3,
+      "texture": 2,
       "position": [ 5.0, 3.0, 5.0 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],
@@ -52,7 +52,7 @@
 
     {
       "mesh": 0,
-      "texture": 3,
+      "texture": 2,
       "position": [ 5.0, 3.0, -5.0 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],
@@ -62,7 +62,7 @@
 
     {
       "mesh": 0,
-      "texture": 3,
+      "texture": 2,
       "position": [ -5.0, 3.0, 5.0 ],
       "rotation": [ 0.0, 0.0, 0.0 ],
       "scale": [ 0.5, 0.5, 0.5 ],

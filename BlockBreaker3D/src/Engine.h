@@ -11,24 +11,30 @@
 #include "Camera.h"
 
 #define DEPTH_TEXTURE_IDX 0
-#define SKYBOX_TEXTURE_IDX 1
+#define SKYBOX_TEXTURE_IDX 0xC
 
 namespace BB3D
 {
 	// ENGINE DEFINES
 	enum TextureType : Uint8
 	{
-		GEM10 = 0x2,
-		GEM03 = 0x3,
-		METAL07 = 0x4,
-		PADDLE01 = 0x5,
-		GEM13 = 0x6,
-		METAL21 = 0x7,
-		BLOCK1 = 0x8,
-		BLOCK2 = 0x9,
-		BLOCK3 = 0xA,
-		BLOCK4 = 0xB,
-		BLOCK5 = 0xC,
+		GEM10 = 0x1,
+		GEM03 = 0x2,
+		METAL07 = 0x3,
+		PADDLE01 = 0x4,
+		GEM13 = 0x5,
+		METAL21 = 0x6,
+		BLOCK1 = 0x7,
+		BLOCK2 = 0x8,
+		BLOCK3 = 0x9,
+		BLOCK4 = 0xA,
+		BLOCK5 = 0xB,
+		SPACE_SKYBOX = 0xC,
+		TECHNO_SKYBOX = 0xD,
+		SINISTER_SKYBOX = 0xE,
+		NETHER_SKYBOX = 0xF,
+		CLASSIC_SKYBOX = 0x10,
+		TEXTURETYPE_MAX = 0x11,
 	};
 
 	enum MeshType : Uint8
@@ -227,9 +233,10 @@ namespace BB3D
 	{
 	private:
 		bool m_IsButtonsDown[4];
+		std::function<void()> m_ToggleSkyboxCallback;
 
 	public:
-		OptionsScene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
+		OptionsScene(const char* filepath, std::function<void(SceneType)> trans_to_callback, std::function<void()> toggle_skybox_callback);
 		~OptionsScene();
 
 		void Update(InputState& input_state, float delta_time) override;
@@ -298,10 +305,12 @@ namespace BB3D
 
 		// Utility
 		static void SceneTransToCallback(SceneType type);
+		static void OptionsToggleSkyboxCallback();
 		void RecordKeyState(SDL_Keycode keycode, bool is_keydown);
 		void RecordMouseBtnState(Uint8 mousebtn_idx, bool is_btndown);
 		void CopyPrevInput();
 		void UpdateDeltaTime();
+		void ParseSettingsJSON();
 		
 	private:
 		// State
@@ -312,6 +321,9 @@ namespace BB3D
 		static std::stack<std::unique_ptr<Scene>> s_SceneStack;
 		UI ui_layer;
 
+		// Options
+		static TextureType s_SelectedTex;
+
 		// SDL Context
 		static SDL_Window* s_Window;
 		static SDL_GPUDevice* s_Device;
@@ -321,9 +333,9 @@ namespace BB3D
 		SDL_GPUGraphicsPipeline* m_PipelineModelsPhong;
 		SDL_GPUGraphicsPipeline* m_PipelineModelsNoPhong;
 		SDL_GPUGraphicsPipeline* m_PipelineUI;
-		SDL_GPUBuffer* ui_buff;
-		std::vector<Mesh> meshes;
-		std::vector<SDL_GPUTexture*> textures;
+		SDL_GPUBuffer* m_UIBuff;
+		std::vector<Mesh> m_Meshes;
+		std::vector<SDL_GPUTexture*> m_Textures;
 
 		//	Global texture sampler
 		SDL_GPUSampler* m_Sampler;

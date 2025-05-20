@@ -23,6 +23,7 @@ namespace BB3D
 	SDL_GPUDevice* Engine::s_Device;
 	std::stack<std::unique_ptr<Scene>> Engine::s_SceneStack;
 	bool Engine::s_IsRunning = true;
+	TextureType Engine::s_SelectedTex = TextureType::SPACE_SKYBOX;
 
 	// ________________________________ Engine Lifetime ________________________________
 
@@ -67,6 +68,7 @@ namespace BB3D
 		}
 
 		InitFreeType();
+		ParseSettingsJSON();
 
 		m_Timer.current_frame = SDL_GetTicks();
 		m_Timer.last_frame = m_Timer.current_frame;
@@ -100,15 +102,15 @@ namespace BB3D
 		SDL_ReleaseGPUGraphicsPipeline(s_Device, m_PipelineSkybox);
 		SDL_ReleaseGPUGraphicsPipeline(s_Device, m_PipelineUI);
 
-		for (Mesh& disposed_mesh : meshes)
+		for (Mesh& disposed_mesh : m_Meshes)
 		{
 			SDL_ReleaseGPUBuffer(s_Device, disposed_mesh.vbo);
 			SDL_ReleaseGPUBuffer(s_Device, disposed_mesh.ibo);
 		}
 
-		SDL_ReleaseGPUBuffer(s_Device, ui_buff);
+		SDL_ReleaseGPUBuffer(s_Device, m_UIBuff);
 
-		for (SDL_GPUTexture* disposed_texture : textures)
+		for (SDL_GPUTexture* disposed_texture : m_Textures)
 		{
 			SDL_ReleaseGPUTexture(s_Device, disposed_texture);
 		}
@@ -134,13 +136,24 @@ namespace BB3D
 		m_InputState.rely = 0;
 
 		// Allocate storage
-		meshes.reserve(16);
-		textures.reserve(16);
+		m_Meshes.reserve(16);
+		m_Textures.reserve(16);
 
 		// Load Textures
 		// DEPTH TEXTURE IS ALWAYS IDX 0, SKYBOX TEXTURE IS ALWAYS IDX 1
-		textures.push_back(CreateDepthTestTexture(s_Device, 1280, 720));
-		textures.push_back(CreateAndLoadCubeMapToGPU(
+		m_Textures.push_back(CreateDepthTestTexture(s_Device, 1280, 720));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_10.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_03.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/metal_07.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/paddle.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_13.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/metal_21.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_1.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_2.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_3.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_4.png"));
+		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_5.png"));
+		m_Textures.push_back(CreateAndLoadCubeMapToGPU(
 			s_Device,
 			{
 				"assets/skyboxes/space/space_right.png",
@@ -151,26 +164,59 @@ namespace BB3D
 				"assets/skyboxes/space/space_back.png"
 			}
 		));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_10.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_03.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/metal_07.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/paddle.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_13.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/metal_21.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_1.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_2.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_3.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_4.png"));
-		textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/block_5.png"));
+		m_Textures.push_back(CreateAndLoadCubeMapToGPU(
+			s_Device,
+			{
+				"assets/skyboxes/techno/techno_right.png",
+				"assets/skyboxes/techno/techno_left.png",
+				"assets/skyboxes/techno/techno_up.png",
+				"assets/skyboxes/techno/techno_down.png",
+				"assets/skyboxes/techno/techno_front.png",
+				"assets/skyboxes/techno/techno_back.png"
+			}
+		));
+		m_Textures.push_back(CreateAndLoadCubeMapToGPU(
+			s_Device,
+			{
+				"assets/skyboxes/sinister/sinister_right.png",
+				"assets/skyboxes/sinister/sinister_left.png",
+				"assets/skyboxes/sinister/sinister_up.png",
+				"assets/skyboxes/sinister/sinister_down.png",
+				"assets/skyboxes/sinister/sinister_front.png",
+				"assets/skyboxes/sinister/sinister_back.png"
+			}
+		));
+		m_Textures.push_back(CreateAndLoadCubeMapToGPU(
+			s_Device,
+			{
+				"assets/skyboxes/nether/nether_right.png",
+				"assets/skyboxes/nether/nether_left.png",
+				"assets/skyboxes/nether/nether_up.png",
+				"assets/skyboxes/nether/nether_down.png",
+				"assets/skyboxes/nether/nether_front.png",
+				"assets/skyboxes/nether/nether_back.png"
+			}
+		));
+		m_Textures.push_back(CreateAndLoadCubeMapToGPU(
+			s_Device,
+			{
+				"assets/skyboxes/classic/classic_right.png",
+				"assets/skyboxes/classic/classic_left.png",
+				"assets/skyboxes/classic/classic_up.png",
+				"assets/skyboxes/classic/classic_down.png",
+				"assets/skyboxes/classic/classic_front.png",
+				"assets/skyboxes/classic/classic_back.png"
+			}
+		));
 
 		test_font = CreateFontAtlasFromFile(s_Device, "assets/fonts/DejaVuSansMono.ttf");
 
 		// Load Meshes
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/ico.obj"));
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/quad.obj"));
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/sphere.obj"));
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/paddle.obj"));
-		meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/block.obj"));
+		m_Meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/ico.obj"));
+		m_Meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/quad.obj"));
+		m_Meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/sphere.obj"));
+		m_Meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/paddle.obj"));
+		m_Meshes.push_back(LoadMeshFromFile(s_Device, "assets/meshes/block.obj"));
 
 		// Load Shaders and Setup Pipelines
 		SDL_GPUShader* phong_vert_shader_model = CreateShaderFromFile(s_Device, "Shaders/model-phong.vert.spv", SDL_GPU_SHADERSTAGE_VERTEX, 0, 1, 0, 0);
@@ -221,7 +267,7 @@ namespace BB3D
 
 		m_Sampler = CreateSampler(s_Device, SDL_GPU_FILTER_NEAREST);
 
-		ui_buff = CreateUILayerBuffer(s_Device);
+		m_UIBuff = CreateUILayerBuffer(s_Device);
 
 		// Scene Initialization
 		// TODO harcode gamescene as idx 0
@@ -262,7 +308,7 @@ namespace BB3D
 		color_target_info.store_op = SDL_GPU_STOREOP_STORE;
 
 		SDL_GPUDepthStencilTargetInfo depth_stencil_target_info = {};
-		depth_stencil_target_info.texture = textures[DEPTH_TEXTURE_IDX];
+		depth_stencil_target_info.texture = m_Textures[DEPTH_TEXTURE_IDX];
 		depth_stencil_target_info.load_op = SDL_GPU_LOADOP_CLEAR;
 		depth_stencil_target_info.clear_depth = 1;
 		depth_stencil_target_info.store_op = SDL_GPU_STOREOP_DONT_CARE;
@@ -276,7 +322,7 @@ namespace BB3D
 
 		// Stage 1: Skybox
 		SDL_BindGPUGraphicsPipeline(render_pass_skybox, m_PipelineSkybox);
-		SDL_GPUTextureSamplerBinding skybox_bind = { textures[SKYBOX_TEXTURE_IDX], m_Sampler};
+		SDL_GPUTextureSamplerBinding skybox_bind = { m_Textures[s_SelectedTex], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_skybox, 0, &skybox_bind, 1);
 		glm::mat4 vp_sky(1.0f);
 		glm::mat4 view_no_transform = glm::mat4(glm::mat3(s_SceneStack.top()->GetSceneCamera().GetViewMatrix()));
@@ -291,11 +337,11 @@ namespace BB3D
 			1,
 			&depth_stencil_target_info
 		);
-		SDL_GPUBufferBinding binding = { meshes[2].vbo, 0};
+		SDL_GPUBufferBinding binding = { m_Meshes[2].vbo, 0};
 		SDL_BindGPUVertexBuffers(render_pass_models, 0, &binding, 1);
-		SDL_GPUBufferBinding ind_bind = { meshes[2].ibo, 0 };
+		SDL_GPUBufferBinding ind_bind = { m_Meshes[2].ibo, 0 };
 		SDL_BindGPUIndexBuffer(render_pass_models, &ind_bind, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-		SDL_GPUTextureSamplerBinding tex_bind = {textures[3], m_Sampler};
+		SDL_GPUTextureSamplerBinding tex_bind = {m_Textures[3], m_Sampler};
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &tex_bind, 1);
 
 		// Stage 2: 3D Models
@@ -314,7 +360,7 @@ namespace BB3D
 
 			mvp = proj * s_SceneStack.top()->GetSceneCamera().GetViewMatrix() * current_entity.GetTransformMatrix();
 			SDL_PushGPUVertexUniformData(cmd_buff, 0, glm::value_ptr(mvp), sizeof(mvp));
-			current_entity.Draw(render_pass_models, { meshes[current_entity.mesh_type].vbo, 0 }, { meshes[current_entity.mesh_type].ibo, 0 }, { textures[current_entity.texture_type], m_Sampler }, meshes[current_entity.mesh_type].ind_count);
+			current_entity.Draw(render_pass_models, { m_Meshes[current_entity.mesh_type].vbo, 0 }, { m_Meshes[current_entity.mesh_type].ibo, 0 }, { m_Textures[current_entity.texture_type], m_Sampler }, m_Meshes[current_entity.mesh_type].ind_count);
 			light_positions[light_count] = current_entity.GetTransformMatrix() * origin;
 			light_count++;
 		}
@@ -346,7 +392,7 @@ namespace BB3D
 			std::memcpy(f_ubo + 16, light_positions, sizeof(light_positions));
 
 			SDL_PushGPUFragmentUniformData(cmd_buff, 0, &f_ubo, sizeof(f_ubo));
-			current_entity.Draw(render_pass_models, { meshes[current_entity.mesh_type].vbo, 0}, { meshes[current_entity.mesh_type].ibo, 0}, { textures[current_entity.texture_type], m_Sampler}, meshes[current_entity.mesh_type].ind_count);
+			current_entity.Draw(render_pass_models, { m_Meshes[current_entity.mesh_type].vbo, 0}, { m_Meshes[current_entity.mesh_type].ibo, 0}, { m_Textures[current_entity.texture_type], m_Sampler}, m_Meshes[current_entity.mesh_type].ind_count);
 		}
 
 		SDL_EndGPURenderPass(render_pass_models);
@@ -355,7 +401,7 @@ namespace BB3D
 		for (UI_TextField text_field : s_SceneStack.top()->GetSceneUITextFields())
 		{
 			if(text_field.is_visible)
-				ui_layer.PushTextToUIBuff(s_Device, ui_buff, text_field, test_font);
+				ui_layer.PushTextToUIBuff(s_Device, m_UIBuff, text_field, test_font);
 		}
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(
@@ -370,7 +416,7 @@ namespace BB3D
 		}
 		SDL_BindGPUGraphicsPipeline(render_pass_ui, m_PipelineUI);
 
-		SDL_GPUBufferBinding test_bind = { ui_buff, 0 };
+		SDL_GPUBufferBinding test_bind = { m_UIBuff, 0 };
 		SDL_BindGPUVertexBuffers(render_pass_ui, 0, &test_bind, 1);
 		SDL_GPUTextureSamplerBinding testtex_bind = { test_font.atlas_texture, m_Sampler };
 		SDL_BindGPUFragmentSamplers(render_pass_models, 0, &testtex_bind, 1);
@@ -472,10 +518,20 @@ namespace BB3D
 
 			case SceneType::OPTIONS:
 			{
-				s_SceneStack.push(std::make_unique<OptionsScene>("assets/scenes/optionsmenu.json", SceneTransToCallback));
+				s_SceneStack.push(std::make_unique<OptionsScene>("assets/scenes/optionsmenu.json", SceneTransToCallback, OptionsToggleSkyboxCallback));
 				break;
 			}
 		}
+	}
+
+	void Engine::OptionsToggleSkyboxCallback()
+	{
+		int tex_idx = static_cast<int>(s_SelectedTex);
+
+		tex_idx += 1;
+		if (tex_idx >= TextureType::TEXTURETYPE_MAX) tex_idx = 12;
+
+		s_SelectedTex = static_cast<TextureType>(tex_idx);
 	}
 
 	void Engine::RecordKeyState(SDL_Keycode keycode, bool is_keydown)
@@ -513,5 +569,10 @@ namespace BB3D
 		m_Timer.elapsed_time = (m_Timer.current_frame - m_Timer.last_frame) / 1000.0f;
 
 		if (m_Timer.elapsed_time < FRAME_TARGET_TIME) SDL_Delay((FRAME_TARGET_TIME - m_Timer.elapsed_time) * 1000.0f);
+	}
+
+	void Engine::ParseSettingsJSON()
+	{
+		const char* SETTINGS_PATH = "bb3d_settings.json";
 	}
 }
