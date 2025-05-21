@@ -16,9 +16,10 @@ namespace BB3D
 		return new_ui_buff;
 	}
 
-	void UI::PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_TextField text_field, FontAtlas& atlas)
+	void UI::PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_TextField text_field, FontAtlas& atlas, Resolution screen_res)
 	{
-		const float font_scale_factor = 0.8f / 48.0f;
+		const float pixel_to_virt_y = 9.0f/static_cast<float>(screen_res.h);
+		const float pixel_to_virt_x = 16.0f/static_cast<float>(screen_res.w);
 
 		// UI Vertices
 		// X, Y, U, V, R, G, B, A
@@ -27,7 +28,7 @@ namespace BB3D
 		unsigned int text_advance = 0;
 
 		// TODO | need to investigate further, 0.4 is the needed offset to have text quads centered at the top left corner. Not entirely sure why
-		float baseline = text_field.pos.y + 0.4f;
+		float baseline = text_field.pos.y;
 
 		// For each char, add a quad with the correct precomputed UV's
 		for (char& c : text_field.text)
@@ -41,11 +42,11 @@ namespace BB3D
 			float w = 0.8f;
 			float h = 0.8f;
 
-			float virt_bearing_y = c_props.bearing.y * font_scale_factor;
-			float virt_advance = static_cast<float>(text_advance) * font_scale_factor;
+			float virt_bearing_y = c_props.bearing.y * pixel_to_virt_y;
+			float virt_advance = static_cast<float>(text_advance) * pixel_to_virt_x;
 
 			float final_x = text_field.pos.x + virt_advance;
-			float final_y = baseline - virt_bearing_y;
+			float final_y = baseline - virt_bearing_y + (48.0f * pixel_to_virt_y);
 
 			int offset = (c - 32);
 

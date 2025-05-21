@@ -64,6 +64,12 @@ namespace BB3D
 		float prev_mouse_x, prev_mouse_y;
 	};
 
+	struct Resolution
+	{
+		unsigned int w;
+		unsigned int h;
+	};
+
 	// OUTSIDE SOURCE FILES
 // ________________________________ Shader.cpp ________________________________
 	SDL_GPUShader* CreateShaderFromFile(
@@ -176,7 +182,7 @@ namespace BB3D
 	{
 		unsigned int frame_offset = 0; // 1 vertex + 32 bytes
 		
-		void PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_TextField text_field, FontAtlas& atlas);
+		void PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_TextField text_field, FontAtlas& atlas, Resolution screen_res);
 		void PushElementToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_Element elem);
 		void FlushUIBuff(SDL_GPUDevice* device);
 	};
@@ -270,6 +276,8 @@ namespace BB3D
 			bool is_stuck;
 		} m_BallState;
 
+		int m_PaddleHitCount;
+
 	public:
 		GameScene(const char* filepath, std::function<void(SceneType)> trans_to_callback);
 		~GameScene();
@@ -323,11 +331,6 @@ namespace BB3D
 
 		// Options
 		static TextureType s_SelectedTex;
-		struct Resolution
-		{
-			unsigned int w;
-			unsigned int h;
-		};
 		static Resolution s_Resolution;
 
 		// SDL Context

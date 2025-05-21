@@ -133,9 +133,9 @@ namespace BB3D
 
 	void MenuScene::CheckMouseInput(InputState& input_state, float delta_time)
 	{
-		bool in_play = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 1.375f, 0.5f);
-		bool in_options = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 2.25f, 0.5f);
-		bool in_quit = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[4].pos, 1.25f, 0.5f);
+		bool in_play = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 1.375f, 0.635f);
+		bool in_options = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 2.25f, 0.635f);
+		bool in_quit = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[4].pos, 1.25f, 0.635f);
 
 		if (!in_play)
 		{
@@ -263,10 +263,10 @@ namespace BB3D
 
 	void OptionsScene::CheckMouseInput(InputState& input_state, float delta_time)
 	{
-		bool in_skybox = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[0].pos, 2.5f, 0.5f);
-		bool in_music = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[1].pos, 3.5f, 0.5f);
-		bool in_res = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 3.5f, 0.5f);
-		bool in_back = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 2.5f, 0.5f);
+		bool in_skybox = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[0].pos, 4.65f, 0.635f);
+		bool in_music = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[1].pos, 8.0f, 0.635f);
+		bool in_res = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 5.85f, 0.635f);
+		bool in_back = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 2.45f, 0.635f);
 
 		if (!in_skybox)
 		{
@@ -570,13 +570,19 @@ namespace BB3D
 			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, m_SceneEntities[0].position, 1.0f);
 			if (result.is_colliding)
 			{
-				printf("HIT PADDLE\n");
+				m_PaddleHitCount += 1;
+				printf("HIT PADDLE | Hit Streak = %d\n", m_PaddleHitCount);
 				float distance = m_SceneEntities[2].position.x - m_SceneEntities[0].position.x;
 				float strength = 2.0f;
+
+				float hit_speed_factor = 1.0f + static_cast<float>(m_PaddleHitCount) / 16.0f; // every 3 hits the speed increases by 1 unit
+				if (hit_speed_factor > 2.0f) hit_speed_factor = 2.0f;
+
 				glm::vec3 old_velocity = m_SceneEntities[2].velocity;
 				m_SceneEntities[2].velocity.x = distance * strength;
 				m_SceneEntities[2].velocity.z = -1.0f * std::abs(m_SceneEntities[2].velocity.z);
 				m_SceneEntities[2].velocity = glm::normalize(m_SceneEntities[2].velocity) * glm::length(old_velocity);
+				m_SceneEntities[2].velocity *= hit_speed_factor;
 
 			}
 		}
@@ -584,14 +590,16 @@ namespace BB3D
 
 	void GameScene::UpdatePaddle(InputState& input_state, float delta_time)
 	{
+		const float PADDLE_SPEED = 8.0f;
+
 		if (input_state.current_keys[SDL_SCANCODE_LEFT])
 		{
-			m_SceneEntities[0].position.x -= 4.0f * delta_time;
+			m_SceneEntities[0].position.x -= PADDLE_SPEED * delta_time;
 		}
 
 		if (input_state.current_keys[SDL_SCANCODE_RIGHT])
 		{
-			m_SceneEntities[0].position.x += 4.0f * delta_time;
+			m_SceneEntities[0].position.x += PADDLE_SPEED * delta_time;
 		}
 
 		if (m_SceneEntities[0].position.x > 5.5f)
@@ -650,6 +658,7 @@ namespace BB3D
 		m_SceneEntities[2].position = { m_SceneEntities[0].position.x, m_SceneEntities[0].position.y, m_SceneEntities[0].position.z - m_BallState.radius };
 		m_SceneEntities[2].velocity.x = 3.5f;
 		m_SceneEntities[2].velocity.z = -3.4f;
+		m_PaddleHitCount = 0;
 	}
 
 	GameScene::CollisionResult GameScene::IsBallColliding(glm::vec3 ball_pos, glm::vec3 collider_pos, float collider_width)

@@ -24,7 +24,7 @@ namespace BB3D
 	std::stack<std::unique_ptr<Scene>> Engine::s_SceneStack;
 	bool Engine::s_IsRunning = true;
 	TextureType Engine::s_SelectedTex = TextureType::SPACE_SKYBOX;
-	Engine::Resolution Engine::s_Resolution = {1280, 720};
+	Resolution Engine::s_Resolution = {1280, 720};
 
 	// ________________________________ Engine Lifetime ________________________________
 
@@ -404,7 +404,7 @@ namespace BB3D
 		for (UI_TextField text_field : s_SceneStack.top()->GetSceneUITextFields())
 		{
 			if(text_field.is_visible)
-				ui_layer.PushTextToUIBuff(s_Device, m_UIBuff, text_field, test_font);
+				ui_layer.PushTextToUIBuff(s_Device, m_UIBuff, text_field, test_font, s_Resolution);
 		}
 
 		SDL_GPURenderPass* render_pass_ui = SDL_BeginGPURenderPass(
