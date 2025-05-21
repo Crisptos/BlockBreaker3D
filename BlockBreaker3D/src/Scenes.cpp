@@ -133,9 +133,9 @@ namespace BB3D
 
 	void MenuScene::CheckMouseInput(InputState& input_state, float delta_time)
 	{
-		bool in_play = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 110, 40);
-		bool in_options = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 180, 40);
-		bool in_quit = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[4].pos, 100, 40);
+		bool in_play = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 1.375f, 0.5f);
+		bool in_options = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 2.25f, 0.5f);
+		bool in_quit = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[4].pos, 1.25f, 0.5f);
 
 		if (!in_play)
 		{
@@ -227,7 +227,7 @@ namespace BB3D
 			
 	}
 
-	bool MenuScene::IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h)
+	bool MenuScene::IsInBox(float mouse_x, float mouse_y, glm::vec2 box_pos, float w, float h)
 	{
 		if (mouse_x < box_pos.x + w && mouse_x > box_pos.x && mouse_y < box_pos.y + h && mouse_y > box_pos.y)
 			return true;
@@ -263,10 +263,10 @@ namespace BB3D
 
 	void OptionsScene::CheckMouseInput(InputState& input_state, float delta_time)
 	{
-		bool in_skybox = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[0].pos, 200, 40);
-		bool in_music = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[1].pos, 280, 40);
-		bool in_res = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 280, 40);
-		bool in_back = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 200, 40);
+		bool in_skybox = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[0].pos, 2.5f, 0.5f);
+		bool in_music = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[1].pos, 3.5f, 0.5f);
+		bool in_res = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[2].pos, 3.5f, 0.5f);
+		bool in_back = IsInBox(input_state.current_mouse_x, input_state.current_mouse_y, m_SceneTextfields[3].pos, 2.5f, 0.5f);
 
 		if (!in_skybox)
 		{
@@ -382,7 +382,7 @@ namespace BB3D
 
 	}
 
-	bool OptionsScene::IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h)
+	bool OptionsScene::IsInBox(float mouse_x, float mouse_y, glm::vec2 box_pos, float w, float h)
 	{
 		if (mouse_x < box_pos.x + w && mouse_x > box_pos.x && mouse_y < box_pos.y + h && mouse_y > box_pos.y)
 			return true;

@@ -6,28 +6,28 @@
   "textfields": [
     {
       "text": "Toggle Skybox",
-      "position": [ 40.0, 100.0 ],
+      "position": [ 0.5, 1.25 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     },
 
     {
       "text": "Background Music: TODO",
-      "position": [ 40.0, 180.0 ],
+        "position": [ 0.5, 2.25 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     },
 
     {
       "text": "Resolution: TODO",
-      "position": [ 40.0, 260.0 ],
+      "position": [ 0.5, 3.25 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     },
 
     {
       "text": "<- Back",
-      "position": [ 40.0, 640.0 ],
+      "position": [ 0.5, 8.0 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     }

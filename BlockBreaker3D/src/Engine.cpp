@@ -24,6 +24,7 @@ namespace BB3D
 	std::stack<std::unique_ptr<Scene>> Engine::s_SceneStack;
 	bool Engine::s_IsRunning = true;
 	TextureType Engine::s_SelectedTex = TextureType::SPACE_SKYBOX;
+	Engine::Resolution Engine::s_Resolution = {1280, 720};
 
 	// ________________________________ Engine Lifetime ________________________________
 
@@ -37,8 +38,8 @@ namespace BB3D
 
 		s_Window = SDL_CreateWindow(
 			"Block Breaker 3D",
-			1280,
-			720,
+			s_Resolution.w,
+			s_Resolution.h,
 			SDL_WINDOW_VULKAN
 		);
 
@@ -141,7 +142,7 @@ namespace BB3D
 
 		// Load Textures
 		// DEPTH TEXTURE IS ALWAYS IDX 0, SKYBOX TEXTURE IS ALWAYS IDX 1
-		m_Textures.push_back(CreateDepthTestTexture(s_Device, 1280, 720));
+		m_Textures.push_back(CreateDepthTestTexture(s_Device, s_Resolution.w, s_Resolution.h));
 		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_10.png"));
 		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/gem_03.png"));
 		m_Textures.push_back(CreateAndLoadTextureToGPU(s_Device, "assets/textures/metal_07.png"));
@@ -274,8 +275,10 @@ namespace BB3D
 		s_SceneStack.push(std::make_unique<MenuScene>("assets/scenes/mainmenu.json", SceneTransToCallback));
 		
 		// Uniform data
-		proj = glm::perspective(glm::radians(60.0f), 1280.0f/720.0f, 0.0001f, 1000.0f);
-		proj_ui = glm::ortho(0.0f, 1280.0f, 720.0f, 0.0f, -1.0f, 1.0f);
+		float f_w = static_cast<float>(s_Resolution.w);
+		float f_h = static_cast<float>(s_Resolution.h);
+		proj = glm::perspective(glm::radians(60.0f), (f_w/f_h), 0.0001f, 1000.0f);
+		proj_ui = glm::ortho(0.0f, 16.0f, 9.0f, 0.0f, -1.0f, 1.0f);
 	}
 
 	void Engine::Update()
@@ -458,8 +461,8 @@ namespace BB3D
 				{
 					m_InputState.relx = ev.motion.xrel * mouse_sensitivity;
 					m_InputState.rely = ev.motion.yrel * mouse_sensitivity;
-					m_InputState.current_mouse_x = ev.motion.x;
-					m_InputState.current_mouse_y = ev.motion.y;
+					m_InputState.current_mouse_x = (ev.motion.x/s_Resolution.w) * 16;
+					m_InputState.current_mouse_y = (ev.motion.y/s_Resolution.h) * 9;
 					break;
 				}
 

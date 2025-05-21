@@ -18,14 +18,16 @@ namespace BB3D
 
 	void UI::PushTextToUIBuff(SDL_GPUDevice* device, SDL_GPUBuffer* ui_buff, UI_TextField text_field, FontAtlas& atlas)
 	{
+		const float font_scale_factor = 0.8f / 48.0f;
+
 		// UI Vertices
 		// X, Y, U, V, R, G, B, A
 		std::vector<Vertex> vertices;
 		vertices.reserve(6 * text_field.text.size());
 		unsigned int text_advance = 0;
 
-		// TODO | need to investigate further, 32 is the needed offset to have text quads centered at the top left corner. Not entirely sure why
-		float baseline = text_field.pos.y + 32.0f;
+		// TODO | need to investigate further, 0.4 is the needed offset to have text quads centered at the top left corner. Not entirely sure why
+		float baseline = text_field.pos.y + 0.4f;
 
 		// For each char, add a quad with the correct precomputed UV's
 		for (char& c : text_field.text)
@@ -36,11 +38,14 @@ namespace BB3D
 			// Atlas is from 32 - 90 ASCII
 			// Char - 31 = Num in 1d
 
-			float w = 64.0f;
-			float h = 64.0f;
+			float w = 0.8f;
+			float h = 0.8f;
 
-			float final_x = text_field.pos.x + text_advance;
-			float final_y = baseline - c_props.bearing.y;
+			float virt_bearing_y = c_props.bearing.y * font_scale_factor;
+			float virt_advance = static_cast<float>(text_advance) * font_scale_factor;
+
+			float final_x = text_field.pos.x + virt_advance;
+			float final_y = baseline - virt_bearing_y;
 
 			int offset = (c - 32);
 

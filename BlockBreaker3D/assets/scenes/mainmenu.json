@@ -14,35 +14,35 @@
   "textfields": [
     {
       "text": "Block Breaker 3D",
-      "position": [ 40.0, 120.0 ],
+      "position": [ 0.75, 1.5 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     },
 
     {
       "text": "By Christos Markakis",
-      "position": [ 60.0, 200.0 ],
+      "position": [ 0.74, 2.5 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     },
 
     {
       "text": "Play",
-      "position": [ 40.0, 400.0 ],
+      "position": [ 0.5, 5.0 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     },
 
     {
       "text": "Options",
-      "position": [ 40.0, 480.0 ],
+      "position": [ 0.5, 6.0 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     },
 
     {
       "text": "Quit",
-      "position": [ 40.0, 560.0 ],
+      "position": [ 0.5, 7.0 ],
       "color": [ 0.96, 0.96, 0.96, 1.0 ],
       "is_visible": true
     }

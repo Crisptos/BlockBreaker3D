@@ -60,8 +60,8 @@ namespace BB3D
 		bool current_mousebtn[12];
 		bool prev_mousebtn[12];
 		float relx, rely;
-		int current_mouse_x, current_mouse_y;
-		int prev_mouse_x, prev_mouse_y;
+		float current_mouse_x, current_mouse_y;
+		float prev_mouse_x, prev_mouse_y;
 	};
 
 	// OUTSIDE SOURCE FILES
@@ -226,7 +226,7 @@ namespace BB3D
 
 	private:
 		void CheckMouseInput(InputState& input_state, float delta_time);
-		bool IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h);
+		bool IsInBox(float mouse_x, float mouse_y, glm::vec2 box_pos, float w, float h);
 	};
 
 	class OptionsScene : public Scene
@@ -243,7 +243,7 @@ namespace BB3D
 
 	private:
 		void CheckMouseInput(InputState& input_state, float delta_time);
-		bool IsInBox(int mouse_x, int mouse_y, glm::vec2 box_pos, int w, int h);
+		bool IsInBox(float mouse_x, float mouse_y, glm::vec2 box_pos, float w, float h);
 	};
 
 	class GameScene : public Scene
@@ -323,6 +323,12 @@ namespace BB3D
 
 		// Options
 		static TextureType s_SelectedTex;
+		struct Resolution
+		{
+			unsigned int w;
+			unsigned int h;
+		};
+		static Resolution s_Resolution;
 
 		// SDL Context
 		static SDL_Window* s_Window;
