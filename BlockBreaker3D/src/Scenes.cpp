@@ -570,20 +570,23 @@ namespace BB3D
 			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, m_SceneEntities[0].position, 1.0f);
 			if (result.is_colliding)
 			{
-				m_PaddleHitCount += 1;
-				printf("HIT PADDLE | Hit Streak = %d\n", m_PaddleHitCount);
-				float distance = m_SceneEntities[2].position.x - m_SceneEntities[0].position.x;
-				float strength = 2.0f;
+				const float BASE_BALL_SPEED = 5.0f;
 
-				float hit_speed_factor = 1.0f + static_cast<float>(m_PaddleHitCount) / 16.0f; // every 3 hits the speed increases by 1 unit
+				float distance = m_SceneEntities[2].position.x - m_SceneEntities[0].position.x;
+				float strength = 2.0f; 
+
+				m_PaddleHitCount += 1;
+				float speed_increment = 1.0f / 16.0f;
+				float hit_speed_factor = 1.0f + speed_increment * m_PaddleHitCount;
 				if (hit_speed_factor > 2.0f) hit_speed_factor = 2.0f;
 
-				glm::vec3 old_velocity = m_SceneEntities[2].velocity;
 				m_SceneEntities[2].velocity.x = distance * strength;
 				m_SceneEntities[2].velocity.z = -1.0f * std::abs(m_SceneEntities[2].velocity.z);
-				m_SceneEntities[2].velocity = glm::normalize(m_SceneEntities[2].velocity) * glm::length(old_velocity);
-				m_SceneEntities[2].velocity *= hit_speed_factor;
+				glm::vec3 new_dir = glm::normalize(m_SceneEntities[2].velocity) * BASE_BALL_SPEED * hit_speed_factor;
+				m_SceneEntities[2].velocity = new_dir;
 
+				printf("HIT PADDLE\nHit Streak = %d\nHit Speed Factor: %.6f\n", m_PaddleHitCount, hit_speed_factor);
+				printf("Distance: %.6f\n", distance);
 			}
 		}
 	}
