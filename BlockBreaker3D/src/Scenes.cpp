@@ -534,8 +534,6 @@ namespace BB3D
 			CollisionResult result = IsBallColliding(m_SceneEntities[2].position, current_entity.position, 0.5f);
 			if (result.is_colliding)
 			{
-				printf("HIT BLOCK\n");
-				printf("Collision Dir: %d\n", result.collision_dir);
 				current_entity.is_active = false;
 
 				if (result.collision_dir == VelocityDir::LEFT || result.collision_dir == VelocityDir::RIGHT)
@@ -586,7 +584,6 @@ namespace BB3D
 				m_SceneEntities[2].velocity = new_dir;
 
 				printf("HIT PADDLE\nHit Streak = %d\nHit Speed Factor: %.6f\n", m_PaddleHitCount, hit_speed_factor);
-				printf("Distance: %.6f\n", distance);
 			}
 		}
 	}
@@ -598,11 +595,13 @@ namespace BB3D
 		if (input_state.current_keys[SDL_SCANCODE_LEFT])
 		{
 			m_SceneEntities[0].position.x -= PADDLE_SPEED * delta_time;
+			if (m_BallState.is_stuck) m_SceneEntities[2].velocity.x = -1 * std::abs(m_SceneEntities[2].velocity.x);
 		}
 
 		if (input_state.current_keys[SDL_SCANCODE_RIGHT])
 		{
 			m_SceneEntities[0].position.x += PADDLE_SPEED * delta_time;
+			if (m_BallState.is_stuck) m_SceneEntities[2].velocity.x = std::abs(m_SceneEntities[2].velocity.x);
 		}
 
 		if (m_SceneEntities[0].position.x > 5.5f)
@@ -629,29 +628,29 @@ namespace BB3D
 		{
 			m_SceneEntities[2].position += m_SceneEntities[2].velocity * delta_time;
 			// Bounds Checking
+			const float BALL_LIMIT_X = 6.0f;
+			const float BALL_LIMIT_TOP_Z = -6.0f;
 
-			if (m_SceneEntities[2].position.x > 6.0f || m_SceneEntities[2].position.x < -6.0f)
+			if (m_SceneEntities[2].position.x > BALL_LIMIT_X)
 			{
+				m_SceneEntities[2].position.x = BALL_LIMIT_X;
+				m_SceneEntities[2].velocity.x *= -1;
+			}
+			if (m_SceneEntities[2].position.x < -BALL_LIMIT_X)
+			{
+				m_SceneEntities[2].position.x = -BALL_LIMIT_X;
 				m_SceneEntities[2].velocity.x *= -1;
 			}
 
-			if (m_SceneEntities[2].position.z < -6.0f)
+			if (m_SceneEntities[2].position.z < BALL_LIMIT_TOP_Z)
 			{
+				m_SceneEntities[2].position.z = BALL_LIMIT_TOP_Z;
 				m_SceneEntities[2].velocity.z *= -1;
 			}
-
-			if (m_SceneEntities[2].position.z > 7.5f)
+			if (m_SceneEntities[2].position.z > 7.0f)
 			{
 				ResetBall();
 			}
-		}
-
-		if (input_state.current_keys[SDL_SCANCODE_B] && !input_state.prev_keys[SDL_SCANCODE_B])
-		{
-			printf("Ball Pos: (%.2f, %.2f, %.2f)\n", m_SceneEntities[2].position.x, m_SceneEntities[2].position.y, m_SceneEntities[2].position.z);
-			printf("Ball Velocity: (%.2f, %.2f)\n", m_SceneEntities[2].velocity.x, m_SceneEntities[2].velocity.z);
-			printf("Paddle Pos: (%.2f, %.2f, %.2f)\n", m_SceneEntities[0].position.x, m_SceneEntities[0].position.y, m_SceneEntities[0].position.z);
-			printf("Camera Pos: (%.2f, %.2f, %.2f)\n", m_SceneCam.pos.x, m_SceneCam.pos.y, m_SceneCam.pos.z);
 		}
 	}
 
